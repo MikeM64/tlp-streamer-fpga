@@ -1,0 +1,7 @@
+*.log
+*.jou
+*.str
+*.cache
+*.xpr
+*.hw
+tlp-streamer
