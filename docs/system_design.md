@@ -17,6 +17,7 @@ Client could be any PCIe emulator:
 
 ## Requirements
   - MUST be able to handle both regular and config TLPs
+  - MUST have counters available for debugging and statistics (USB Packet RX/TX, PCIe TLP RX/TX, etc...)
   - MAY be hot-restart capable to change VID/PID/device class from the client software (dependent on FPGA support)
 
 ## Open Tasks
@@ -49,14 +50,25 @@ To start, implement a loopback on the USB3 side (which can be kept for later deb
 
 ### FPGA Design
 #### USB Loopback
-FT601 => FIFO => FT601 is the goal
+FT601 => FPGA => FT601 is the goal
 
+##### USB Packet RX
 The 245 bus mode on the FT601 has the following read state machine. All FT601 signals change on the negative clock edge.
 1. Idle
+  - The default state of the bus
 2. RX FIFO Full (at RXF_N from FT601)
+  - This indicates that the FT601 has data waiting to be read out
 3. Controller FIFO Ready (at FIFO ready from controller)
+  - This indicates that the FPGA has started a read transaction
+  - No writes accepted at this time
 4. Read word
+  - Read until nothing is left or buffer full?
 5. Transfer Complete
+
+Need an controller between the RX FIFO and the FT601.
+
+IDLE -> RX_USB (On RXF_N) -> RX_USB_WORD (On FIFO ready) -> RX_USB_DONE (On BE != 0xF) -> IDLE
+
 
 #### Configuration Block
 This block manages configuration of the FPGA device. It manages the following features:
