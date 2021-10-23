@@ -86,7 +86,8 @@ begin
 
 end process clock_process;
 
-bus_read_write: process(ft601_bus_wr_s, ft601_be_io, ft601_data_io)
+bus_read_write: process(ft601_bus_wr_s, ft601_be_io, ft601_data_io,
+                        ft601_be_wr_o, ft601_data_wr_o)
 begin
 
     if (ft601_bus_wr_s = '0') then
