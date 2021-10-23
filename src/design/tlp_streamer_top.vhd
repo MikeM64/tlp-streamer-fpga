@@ -68,10 +68,14 @@ rx_usb_fifo: fifo_36_36_prim
         full => fifo_rx_wr_full_s,
         empty => fifo_rx_rd_empty_s);
 
-clock_process: process(ft601_clk_i, usr_rst_n_i)
+clock_process: process(ft601_clk_i, usr_rst_n_i, ft601_be_rd_i,
+                       ft601_data_rd_i)
 begin
 
     usr_rst_s <= '0';
+
+    -- Temporary until loopback is complete
+    fifo_rx_rd_en_s <= '0';
 
     ft601_rst_n_o <= usr_rst_n_i;
     if (usr_rst_n_i = '0') then
@@ -82,6 +86,7 @@ begin
         -- to change on the falling edge of the clock and reads
         -- are expected to occur on the rising edge.
         current_rx_state <= next_rx_state;
+        fifo_rx_wr_data_s <= ft601_be_rd_i & ft601_data_rd_i;
     end if;
 
 end process clock_process;
