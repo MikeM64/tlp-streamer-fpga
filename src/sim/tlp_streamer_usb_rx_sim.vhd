@@ -84,29 +84,25 @@ report "FPGA reset complete";
 -- Refer to pg. 17 of the FT601 datasheet for the
 -- controller read timing diagram. This is what is
 -- being verified here.
-
--- Assert RXF_N from the FT601 to indicate there is data available
 test_ft601_rxf_n <= '0';
 
-wait for 10ns;
---assert test_ft601_oe_n = '0' report "The core has not asserted OE_N, 3 cycles after RXF_N" severity failure;
-
-wait for 10ns;
+wait for 20ns;
 test_ft601_bus_wr_s <= '1';
 test_ft601_be_wr_o <= "1111";
 test_ft601_data_wr_o <= "11111111111111111111111111111111";
 
 wait for 10ns;
---assert test_ft601_rd_n = '0' report "The core has not asserted RD_N, 1 cycle after OE_N" severity failure;
+assert test_ft601_oe_n = '0' report "The core has not asserted OE_N, 3 cycles after RXF_N" severity failure;
 test_ft601_bus_wr_s <= '1';
 test_ft601_be_wr_o <= "0000";
 test_ft601_data_wr_o <= "00000000000000000000000000000000";
 
 wait for 10ns;
+assert test_ft601_rd_n = '0' report "The core has not asserted RD_N, 1 cycle after OE_N" severity failure;
 test_ft601_rxf_n <= '1';
 wait for 30ns;
---assert test_ft601_oe_n = '1' report "The core has not de-asserted OE_N, 1 cycle after RXF_N" severity failure;
---assert test_ft601_rd_n = '1' report "The core has not de-asserted RD_N, 1 cycle after RXF_N" severity failure;
+assert test_ft601_oe_n = '1' report "The core has not de-asserted OE_N, 1 cycle after RXF_N" severity failure;
+assert test_ft601_rd_n = '1' report "The core has not de-asserted RD_N, 1 cycle after RXF_N" severity failure;
 report "Simulation complete!";
 
 end process tb;
