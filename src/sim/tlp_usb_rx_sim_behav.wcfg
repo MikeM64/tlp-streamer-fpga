@@ -12,15 +12,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="195620fs"></ZoomStartTime>
-      <ZoomEndTime time="253421fs"></ZoomEndTime>
-      <Cursor1Time time="220000fs"></Cursor1Time>
+      <ZoomStartTime time="204916fs"></ZoomStartTime>
+      <ZoomEndTime time="272017fs"></ZoomEndTime>
+      <Cursor1Time time="500000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="181"></NameColumnWidth>
-      <ValueColumnWidth column_width="79"></ValueColumnWidth>
+      <ValueColumnWidth column_width="71"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="12" />
+   <WVObjectSize size="15" />
    <wvobject type="logic" fp_name="/tlp_usb_rx_sim/test_ft601_clk">
       <obj_property name="ElementShortName">test_ft601_clk</obj_property>
       <obj_property name="ObjectShortName">test_ft601_clk</obj_property>
@@ -29,21 +29,21 @@
       <obj_property name="ElementShortName">test_ft601_be[3:0]</obj_property>
       <obj_property name="ObjectShortName">test_ft601_be[3:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/ft601_be_io">
-      <obj_property name="ElementShortName">ft601_be_io[3:0]</obj_property>
-      <obj_property name="ObjectShortName">ft601_be_io[3:0]</obj_property>
-   </wvobject>
    <wvobject type="array" fp_name="/tlp_usb_rx_sim/test_ft601_data">
       <obj_property name="ElementShortName">test_ft601_data[31:0]</obj_property>
       <obj_property name="ObjectShortName">test_ft601_data[31:0]</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/ft601_data_io">
-      <obj_property name="ElementShortName">ft601_data_io[31:0]</obj_property>
-      <obj_property name="ObjectShortName">ft601_data_io[31:0]</obj_property>
-   </wvobject>
    <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/ft601_bus_wr_s">
       <obj_property name="ElementShortName">ft601_bus_wr_s</obj_property>
       <obj_property name="ObjectShortName">ft601_bus_wr_s</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/ft601_be_io">
+      <obj_property name="ElementShortName">ft601_be_io[3:0]</obj_property>
+      <obj_property name="ObjectShortName">ft601_be_io[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/ft601_data_io">
+      <obj_property name="ElementShortName">ft601_data_io[31:0]</obj_property>
+      <obj_property name="ObjectShortName">ft601_data_io[31:0]</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/tlp_usb_rx_sim/test_ft601_oe_n">
       <obj_property name="ElementShortName">test_ft601_oe_n</obj_property>
@@ -68,5 +68,17 @@
    <wvobject type="other" fp_name="/tlp_usb_rx_sim/UUT/current_rx_state">
       <obj_property name="ElementShortName">current_rx_state</obj_property>
       <obj_property name="ObjectShortName">current_rx_state</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/fifo_rx_wr_data_s">
+      <obj_property name="ElementShortName">fifo_rx_wr_data_s[35:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_rx_wr_data_s[35:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/fifo_rx_wr_en_s">
+      <obj_property name="ElementShortName">fifo_rx_wr_en_s</obj_property>
+      <obj_property name="ObjectShortName">fifo_rx_wr_en_s</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/fifo_rx_wr_en_buf_s">
+      <obj_property name="ElementShortName">fifo_rx_wr_en_buf_s</obj_property>
+      <obj_property name="ObjectShortName">fifo_rx_wr_en_buf_s</obj_property>
    </wvobject>
 </wave_config>
