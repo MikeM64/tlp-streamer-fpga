@@ -102,9 +102,9 @@ test_ft601_bus_wr_s <= '1';
 test_ft601_be_wr_o <= "0000";
 test_ft601_data_wr_o <= "00000000000000000000000000000000";
 
-test_ft601_rxf_n <= '1';
-
 wait for 10ns;
+test_ft601_rxf_n <= '1';
+wait for 30ns;
 --assert test_ft601_oe_n = '1' report "The core has not de-asserted OE_N, 1 cycle after RXF_N" severity failure;
 --assert test_ft601_rd_n = '1' report "The core has not de-asserted RD_N, 1 cycle after RXF_N" severity failure;
 report "Simulation complete!";
