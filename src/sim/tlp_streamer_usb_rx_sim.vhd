@@ -92,6 +92,21 @@ test_ft601_be_wr_o <= "1111";
 test_ft601_data_wr_o <= "11111111111111111111111111111111";
 
 wait for 10ns;
+test_ft601_bus_wr_s <= '1';
+test_ft601_be_wr_o <= "1111";
+test_ft601_data_wr_o <= "00000000000000000000000000000000";
+
+wait for 10ns;
+test_ft601_bus_wr_s <= '1';
+test_ft601_be_wr_o <= "1111";
+test_ft601_data_wr_o <= "01010101010101010101010101010101";
+
+wait for 10ns;
+test_ft601_bus_wr_s <= '1';
+test_ft601_be_wr_o <= "1111";
+test_ft601_data_wr_o <= "10101010101010101010101010101010";
+
+wait for 10ns;
 assert test_ft601_oe_n = '0' report "The core has not asserted OE_N, 3 cycles after RXF_N" severity failure;
 test_ft601_bus_wr_s <= '1';
 test_ft601_be_wr_o <= "0000";
