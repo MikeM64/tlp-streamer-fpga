@@ -20,6 +20,8 @@ architecture test of tlp_usb_rx_sim is
             ft601_rxf_n_i   : in    std_logic;
             ft601_rd_n_o    : out   std_logic;
             ft601_rst_n_o   : out   std_logic;
+            ft601_txe_n_i   : in    std_logic;
+            ft601_wr_n_o    : out   std_logic;
             usr_rst_n_i     : in    std_logic);
     end component;
 
@@ -37,6 +39,8 @@ signal test_ft601_oe_n: std_logic := '1';
 signal test_ft601_rxf_n: std_logic := '1';
 signal test_ft601_rd_n: std_logic := '1';
 signal test_ft601_rst_n: std_logic := '1';
+signal test_ft601_txe_n: std_logic := '1';
+signal test_ft601_wr_n: std_logic := '1';
 signal test_usr_rst_n: std_logic := '1';
 
 begin
@@ -50,6 +54,8 @@ UUT: tlp_streamer
         ft601_rxf_n_i => test_ft601_rxf_n,
         ft601_rd_n_o => test_ft601_rd_n,
         ft601_rst_n_o => test_ft601_rst_n,
+        ft601_txe_n_i => test_ft601_txe_n,
+        ft601_wr_n_o => test_ft601_wr_n,
         usr_rst_n_i => test_usr_rst_n);
 
 test_ft601_clk <= not test_ft601_clk after 5ns;
@@ -118,6 +124,11 @@ test_ft601_rxf_n <= '1';
 wait for 30ns;
 assert test_ft601_oe_n = '1' report "The core has not de-asserted OE_N, 1 cycle after RXF_N" severity failure;
 assert test_ft601_rd_n = '1' report "The core has not de-asserted RD_N, 1 cycle after RXF_N" severity failure;
+test_ft601_txe_n <= '0';
+test_ft601_be_wr_o <= "ZZZZ";
+test_ft601_data_wr_o <= "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
+
+wait for 200ns;
 report "Simulation complete!";
 
 end process tb;
