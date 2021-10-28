@@ -93,9 +93,11 @@ set_property PACKAGE_PIN E13 [get_ports ft601_clk_i]
 
 #PCIe signals
 #set_property PACKAGE_PIN K1 [get_ports pcie_present]
+set_property PACKAGE_PIN K1 [get_ports usr_rst_n_i]
 #set_property PACKAGE_PIN M1 [get_ports pcie_perst_n]
 #set_property PACKAGE_PIN L2 [get_ports pcie_wake_n]
 #set_property IOSTANDARD LVCMOS33 [get_ports pcie_present]
+set_property IOSTANDARD LVCMOS33 [get_ports usr_rst_n_i]
 #set_property IOSTANDARD LVCMOS33 [get_ports pcie_perst_n]
 #set_property IOSTANDARD LVCMOS33 [get_ports pcie_wake_n]
 

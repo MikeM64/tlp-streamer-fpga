@@ -39,6 +39,7 @@ signal ft601_bus_wr_s: std_logic;
 signal ft601_oe_n_s: std_logic;
 signal ft601_rd_n_s: std_logic;
 signal ft601_wr_n_s: std_logic;
+signal ft601_wr_n_reg_s: std_logic;
 
 signal usr_rst_s: std_logic;
 signal fifo_rx_wr_data_s: std_logic_vector(35 downto 0);
@@ -110,7 +111,7 @@ clock_process: process(ft601_clk_i, usr_rst_n_i, ft601_be_rd_i,
                        fifo_rx_wr_en_reg_s, fifo_tx_rd_en_reg_s,
                        fifo_loopback_rd_wr_en_s, ft601_oe_n_s,
                        ft601_rd_n_s, ft601_wr_n_s, fifo_tx_rd_data_s,
-                       fifo_rx_rd_valid_s)
+                       fifo_rx_rd_valid_s, ft601_wr_n_reg_s)
 begin
 
     usr_rst_s <= '0';
@@ -145,7 +146,8 @@ begin
     if (ft601_clk_i'EVENT and ft601_clk_i = '0') then
         ft601_oe_n_o <= ft601_oe_n_s;
         ft601_rd_n_o <= ft601_rd_n_s;
-        ft601_wr_n_o <= ft601_wr_n_s;
+        ft601_wr_n_s <= ft601_wr_n_reg_s;
+        ft601_wr_n_o <= ft601_wr_n_reg_s;
         ft601_be_wr_o <= fifo_tx_rd_data_s(35 downto 32);
         ft601_data_wr_o <= fifo_tx_rd_data_s(31 downto 0);
     end if;
@@ -168,25 +170,7 @@ begin
 
 end process bus_read_write;
 
-tx_rx_ctrl: process(ft601_rxf_n_i, ft601_txe_n_i, fifo_rx_wr_full_s,
-                    fifo_tx_rd_empty_s, ctrl_rx_in_progress,
-                    ctrl_tx_in_progress)
-begin
-
-    -- Let in-flight transactions finish before starting a new one
-    ctrl_rx_enable <= ctrl_rx_in_progress;
-    ctrl_tx_enable <= ctrl_tx_in_progress;
-
-    -- Always attempt to drain the TX buffer before receiving more data
-    if (ctrl_rx_in_progress = '0' and ft601_txe_n_i = '0' and fifo_tx_rd_empty_s = '0') then
-        ctrl_tx_enable <= '1';
-    elsif (ctrl_tx_in_progress = '0' and ft601_rxf_n_i = '0' and fifo_rx_wr_full_s = '0') then
-        ctrl_rx_enable <= '1';
-    end if;
-
-end process tx_rx_ctrl;
-
-fifo_loopback_ctrl: process(ft601_clk_i, fifo_rx_rd_empty_s, fifo_tx_wr_full_s,
+fifo_loopback_ctrl: process(fifo_rx_rd_empty_s, fifo_tx_wr_full_s,
                             fifo_rx_rd_valid_s)
 begin
 
@@ -214,7 +198,7 @@ begin
     ft601_bus_wr_s <= '0';
     ctrl_rx_in_progress <= '0';
 
-    if (ctrl_rx_enable = '1') then
+    if (ctrl_tx_in_progress = '0') then
         case current_rx_state is
             when RX_IDLE =>
                 if (ft601_rxf_n_i = '0') then
@@ -254,10 +238,10 @@ begin
     next_tx_state <= current_tx_state;
 
     ctrl_tx_in_progress <= '0';
-    ft601_wr_n_s <= '1';
+    ft601_wr_n_reg_s <= '1';
     fifo_tx_rd_en_reg_s <= '0';
 
-    if (ctrl_tx_enable = '1') then
+    if (ctrl_rx_in_progress = '0') then
         case current_tx_state is
             when TX_IDLE =>
                 if (ft601_txe_n_i = '0' and fifo_tx_rd_empty_s = '0') then
@@ -269,7 +253,7 @@ begin
             when TX_WORD =>
                 ctrl_tx_in_progress <= '1';
                 -- Only transmit valid words to the FT601
-                ft601_wr_n_s <= not fifo_tx_rd_valid_s;
+                ft601_wr_n_reg_s <= not fifo_tx_rd_valid_s;
                 fifo_tx_rd_en_reg_s <= '1';
                 if (ft601_txe_n_i = '1' or fifo_tx_rd_empty_s = '1') then
                     next_tx_state <= TX_IDLE;
