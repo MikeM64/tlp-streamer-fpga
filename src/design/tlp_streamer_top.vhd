@@ -121,6 +121,7 @@ begin
     ft601_rst_n_o <= usr_rst_n_i;
     if (usr_rst_n_i = '0') then
         current_rx_state <= RX_IDLE;
+        current_tx_state <= TX_IDLE;
         usr_rst_s <= '1';
         fifo_rx_wr_en_s <= '0';
         fifo_rx_rd_en_s <= '0';
