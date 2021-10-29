@@ -23,8 +23,8 @@ end entity tlp_streamer;
 
 architecture RTL of tlp_streamer is
 
-signal ctrl_rx_enable, ctrl_tx_enable: std_logic;
 signal ctrl_rx_in_progress, ctrl_tx_in_progress: std_logic;
+signal ctrl_rx_in_progress_reg, ctrl_tx_in_progress_reg: std_logic;
 
 type rx_usb_state is (RX_IDLE, RX_READY, RX_START, RX_WORD);
 signal current_rx_state, next_rx_state: rx_usb_state;
@@ -111,7 +111,8 @@ clock_process: process(ft601_clk_i, usr_rst_n_i, ft601_be_rd_i,
                        fifo_rx_wr_en_reg_s, fifo_tx_rd_en_reg_s,
                        fifo_loopback_rd_wr_en_s, ft601_oe_n_s,
                        ft601_rd_n_s, ft601_wr_n_s, fifo_tx_rd_data_s,
-                       fifo_rx_rd_valid_s, ft601_wr_n_reg_s)
+                       fifo_rx_rd_valid_s, ft601_wr_n_reg_s,
+                       ctrl_tx_in_progress_reg, ctrl_rx_in_progress_reg)
 begin
 
     usr_rst_s <= '0';
@@ -150,6 +151,8 @@ begin
         ft601_wr_n_o <= ft601_wr_n_reg_s;
         ft601_be_wr_o <= fifo_tx_rd_data_s(35 downto 32);
         ft601_data_wr_o <= fifo_tx_rd_data_s(31 downto 0);
+        ctrl_rx_in_progress <= ctrl_rx_in_progress_reg;
+        ctrl_tx_in_progress <= ctrl_tx_in_progress_reg;
     end if;
 
 end process clock_process;
@@ -185,7 +188,7 @@ begin
 end process fifo_loopback_ctrl;
 
 rx_process: process(ft601_rxf_n_i, fifo_rx_wr_full_s, ft601_be_rd_i,
-                    current_rx_state, ft601_rd_n_s, ctrl_rx_enable)
+                    current_rx_state, ft601_rd_n_s, ctrl_tx_in_progress)
 begin
 
     -- Assume the state does not change by default
@@ -196,7 +199,7 @@ begin
     ft601_rd_n_s <= '1';
     fifo_rx_wr_en_reg_s <= '0';
     ft601_bus_wr_s <= '0';
-    ctrl_rx_in_progress <= '0';
+    ctrl_rx_in_progress_reg <= '0';
 
     if (ctrl_tx_in_progress = '0') then
         case current_rx_state is
@@ -205,16 +208,15 @@ begin
                     next_rx_state <= RX_READY;
                 end if;
             when RX_READY =>
-                ctrl_rx_in_progress <= '1';
+                ctrl_rx_in_progress_reg <= '1';
                 if (fifo_rx_wr_full_s = '0') then
                     next_rx_state <= RX_START;
                 end if;
             when RX_START =>
-                ctrl_rx_in_progress <= '1';
+                ctrl_rx_in_progress_reg <= '1';
                 ft601_oe_n_s <= '0';
                 next_rx_state <= RX_WORD;
             when RX_WORD =>
-                ctrl_rx_in_progress <= '1';
                 ft601_oe_n_s <= '0';
                 ft601_rd_n_s <= '0';
                 -- FIFO wr_en is tied to rxf_n as otherwise it will
@@ -224,6 +226,9 @@ begin
 
                 if (ft601_be_rd_i < "1111" or ft601_rxf_n_i = '1' or fifo_rx_wr_full_s = '1') then
                     next_rx_state <= RX_IDLE;
+                    ctrl_rx_in_progress_reg <= '0';
+                else
+                    ctrl_rx_in_progress_reg <= '1';
                 end if;
         end case;
     end if;
@@ -231,13 +236,13 @@ begin
 end process rx_process;
 
 tx_process: process(ft601_txe_n_i, fifo_tx_rd_empty_s, current_tx_state,
-                    ctrl_tx_enable, fifo_tx_rd_valid_s)
+                    ctrl_rx_in_progress, fifo_tx_rd_valid_s)
 begin
 
     -- Assume the state does not change by default
     next_tx_state <= current_tx_state;
 
-    ctrl_tx_in_progress <= '0';
+    ctrl_tx_in_progress_reg <= '0';
     ft601_wr_n_reg_s <= '1';
     fifo_tx_rd_en_reg_s <= '0';
 
@@ -248,15 +253,17 @@ begin
                     next_tx_state <= TX_START;
                 end if;
             when TX_START =>
-                ctrl_tx_in_progress <= '1';
+                ctrl_tx_in_progress_reg <= '1';
                 next_tx_state <= TX_WORD;
             when TX_WORD =>
-                ctrl_tx_in_progress <= '1';
                 -- Only transmit valid words to the FT601
                 ft601_wr_n_reg_s <= not fifo_tx_rd_valid_s;
                 fifo_tx_rd_en_reg_s <= '1';
                 if (ft601_txe_n_i = '1' or fifo_tx_rd_empty_s = '1') then
                     next_tx_state <= TX_IDLE;
+                    ctrl_tx_in_progress_reg <= '0';
+                else
+                    ctrl_tx_in_progress_reg <= '1';
                 end if;
         end case;
     end if;
