@@ -309,7 +309,7 @@ begin
         when RX_START =>
             next_bus_state <= RX_WORD_1;
         when RX_WORD_1 =>
-            next_bus_state <= RX_WORD_1;
+            next_bus_state <= RX_WORD_2;
         when RX_WORD_2 =>
             if (ft601_rxf_n_i = '1') then
                 next_bus_state <= RX_COMPLETE;
