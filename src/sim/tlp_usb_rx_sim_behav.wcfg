@@ -3,23 +3,24 @@
    <wave_state>
    </wave_state>
    <db_ref_list>
-      <db_ref path="tlp_usb_rx_sim_time_impl.wdb" id="1">
+      <db_ref path="tlp_usb_rx_sim_behav.wdb" id="1">
          <top_modules>
             <top_module name="glbl" />
             <top_module name="tlp_usb_rx_sim" />
+            <top_module name="vcomponents" />
          </top_modules>
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="837246fs"></ZoomStartTime>
-      <ZoomEndTime time="884347fs"></ZoomEndTime>
-      <Cursor1Time time="845200fs"></Cursor1Time>
+      <ZoomStartTime time="798439fs"></ZoomStartTime>
+      <ZoomEndTime time="887540fs"></ZoomEndTime>
+      <Cursor1Time time="146fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="160"></NameColumnWidth>
-      <ValueColumnWidth column_width="66"></ValueColumnWidth>
+      <ValueColumnWidth column_width="62"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="12" />
+   <WVObjectSize size="17" />
    <wvobject type="group" fp_name="group147">
       <obj_property name="label">Test Signals</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -77,46 +78,10 @@
       <obj_property name="label">Bus FSM</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[0] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[0] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[0] </obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[1] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[1] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[1] </obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[2] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[2] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[2] </obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[3] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[3] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[3] </obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[4] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[4] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[4] </obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[5] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[5] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[5] </obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[6] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[6] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[6] </obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[7] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[7] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[7] </obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[8] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[8] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[8] </obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/\FSM_onehot_current_bus_state_reg_n_0_[9] ">
-         <obj_property name="ElementShortName">\FSM_onehot_current_bus_state_reg_n_0_[9] </obj_property>
-         <obj_property name="ObjectShortName">\FSM_onehot_current_bus_state_reg_n_0_[9] </obj_property>
-      </wvobject>
+   </wvobject>
+   <wvobject type="other" fp_name="/tlp_usb_rx_sim/UUT/next_bus_state">
+      <obj_property name="ElementShortName">next_bus_state</obj_property>
+      <obj_property name="ObjectShortName">next_bus_state</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/ft601_txe_n_i">
       <obj_property name="DisplayName">label</obj_property>
@@ -140,6 +105,22 @@
          <obj_property name="ElementShortName">fifo_rx_rd_valid_s</obj_property>
          <obj_property name="ObjectShortName">fifo_rx_rd_valid_s</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/fifo_rx_rd_en_s">
+      <obj_property name="ElementShortName">fifo_rx_rd_en_s</obj_property>
+      <obj_property name="ObjectShortName">fifo_rx_rd_en_s</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/fifo_rx_wr_en_s_reg">
+      <obj_property name="ElementShortName">fifo_rx_wr_en_s_reg</obj_property>
+      <obj_property name="ObjectShortName">fifo_rx_wr_en_s_reg</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/fifo_rx_wr_full_s">
+      <obj_property name="ElementShortName">fifo_rx_wr_full_s</obj_property>
+      <obj_property name="ObjectShortName">fifo_rx_wr_full_s</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/fifo_rx_rd_empty_s">
+      <obj_property name="ElementShortName">fifo_rx_rd_empty_s</obj_property>
+      <obj_property name="ObjectShortName">fifo_rx_rd_empty_s</obj_property>
    </wvobject>
    <wvobject type="group" fp_name="group239">
       <obj_property name="label">TX FIFO</obj_property>

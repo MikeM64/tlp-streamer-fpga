@@ -68,6 +68,7 @@ signal tlp_streamer_reset_s: std_logic;
 
 signal ila_trigger_in_s: std_logic;
 signal ila_trigger_in_ack: std_logic;
+signal ila_current_bus_state_s: std_logic_vector(9 downto 0);
 
 component fifo_36_36_prim IS
   PORT (
@@ -96,7 +97,8 @@ component ila_0 IS
         probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
         probe6 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
         probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe8 : IN STD_LOGIC_VECTOR(0 DOWNTO 0));
+        probe8 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe9 : IN STD_LOGIC_VECTOR(9 DOWNTO 0));
 END component ila_0;
 
 begin
@@ -140,7 +142,8 @@ ft601_bus_ila: ila_0
         probe5(0) => ft601_rd_n_s,
         probe6(0) => ft601_wr_n_s_2,
         probe7(0) => fifo_rx_wr_en_s,
-        probe8(0) => fifo_tx_wr_en_s);
+        probe8(0) => fifo_tx_wr_en_s,
+        probe9 => ila_current_bus_state_s);
 
 reset_process: process(sys_clk, reset_hold_count64_s, tlp_streamer_reset_s)
 begin
@@ -245,6 +248,7 @@ begin
         current_bus_state <= BUS_IDLE;
     elsif (rising_edge(ft601_clk_i)) then
         current_bus_state <= next_bus_state;
+        ila_current_bus_state_s <= std_logic_vector(to_unsigned(ft601_bus_state'POS(current_bus_state), 10));
     end if;
 
 end process fsm_state_process;
