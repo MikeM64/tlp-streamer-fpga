@@ -5,3 +5,5 @@
 *.xpr
 *.hw
 tlp-streamer
+*.tmp
+.Xil
