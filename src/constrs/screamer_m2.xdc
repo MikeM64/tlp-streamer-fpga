@@ -37,67 +37,72 @@ set_property PACKAGE_PIN D16 [get_ports {ft601_data_io[31]}]
 set_property PACKAGE_PIN T15 [get_ports ft601_oe_n_o]
 set_property PACKAGE_PIN R16 [get_ports ft601_rd_n_o]
 set_property PACKAGE_PIN R18 [get_ports ft601_rxf_n_i]
-#set_property PACKAGE_PIN R17 [get_ports ft601_siwu_n]
+set_property PACKAGE_PIN R17 [get_ports ft601_siwu_n_o]
 set_property PACKAGE_PIN P18 [get_ports ft601_txe_n_i]
 set_property PACKAGE_PIN T18 [get_ports ft601_wr_n_o]
 set_property PACKAGE_PIN U15 [get_ports ft601_rst_n_o]
-set_property IOSTANDARD LVCMOS33 [get_ports {ft601_rxf_n_i ft601_txe_n_i ft601_rst_n_o ft601_oe_n_o ft601_rd_n_o}]
+set_property IOSTANDARD LVCMOS33 [get_ports {ft601_rxf_n_i ft601_txe_n_i ft601_rst_n_o ft601_oe_n_o ft601_rd_n_o ft601_wr_n_o ft601_siwu_n_o}]
 set_property IOSTANDARD LVCMOS33 [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
-#set_property IOSTANDARD LVCMOS33 [get_ports {ft601_wr_n_o ft601_siwu_n}]
-set_property IOSTANDARD LVCMOS33 [get_ports {ft601_wr_n_o}]
 set_property SLEW FAST [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
-#set_property SLEW FAST [get_ports {ft601_wr_n ft601_siwu_n}]
-set_property SLEW FAST [get_ports {ft601_wr_n_o}]
-set_property SLEW FAST [get_ports {ft601_rd_n_o ft601_oe_n_o ft601_rst_n_o}]
+set_property SLEW FAST [get_ports {ft601_siwu_n_o ft601_wr_n_o ft601_rd_n_o ft601_oe_n_o ft601_rst_n_o}]
 
-#set_property PACKAGE_PIN V17 [get_ports user_led_ld1]
-#set_property PACKAGE_PIN U17 [get_ports user_led_ld2]
-#set_property IOSTANDARD LVCMOS33 [get_ports user_led_ld1]
-#set_property IOSTANDARD LVCMOS33 [get_ports user_led_ld2]
+# LEDs are active high
+set_property PACKAGE_PIN V17 [get_ports user_led_ld1]
+set_property PACKAGE_PIN U17 [get_ports user_led_ld2]
+set_property IOSTANDARD LVCMOS33 [get_ports user_led_ld1]
+set_property IOSTANDARD LVCMOS33 [get_ports user_led_ld2]
 
 # SYSCLK
-#set_property PACKAGE_PIN R2 [get_ports clk]
-#set_property IOSTANDARD LVCMOS33 [get_ports clk]
-#create_clock -period 10.000 -name net_clk -waveform {0.000 5.000} [get_ports clk]
+set_property PACKAGE_PIN R2 [get_ports sys_clk]
+set_property IOSTANDARD LVCMOS33 [get_ports sys_clk]
+create_clock -period 10.000 -name net_clk -waveform {0.000 5.000} [get_ports sys_clk]
 
 # FT601 CLK
-create_clock -period 10.000 -name net_ft601_clk_i -waveform {0.000 5.000} [get_ports ft601_clk_i]
 set_property IOSTANDARD LVCMOS33 [get_ports ft601_clk_i]
 set_property PACKAGE_PIN E13 [get_ports ft601_clk_i]
+create_clock -period 10.000 -name net_ft601_clk_i -waveform {0.000 5.000} [get_ports ft601_clk_i]
 
 # Delay constraints are from FT601 Data sheet pg. 17
-#set_input_delay -clock [get_clocks net_ft601_clk_i] -min 3 [get_ports {ft601_data_io[*]}]
-#set_input_delay -clock [get_clocks net_ft601_clk_i] -max 3.5 [get_ports {ft601_data_io[*]}]
-#set_input_delay -clock [get_clocks net_ft601_clk_i] -min 3 [get_ports ft601_rxf_n_i]
-#set_input_delay -clock [get_clocks net_ft601_clk_i] -max 3.5 [get_ports ft601_rxf_n_i]
-#set_input_delay -clock [get_clocks net_ft601_clk_i] -min 4.5 [get_ports ft601_txe_n]
-#set_input_delay -clock [get_clocks net_ft601_clk_i] -max 7.0 [get_ports ft601_txe_n]
+set_input_delay -clock [get_clocks net_ft601_clk_i] -min 3.000 [get_ports {{ft601_data_io[*]} {ft601_be_io[*]}}]
+set_input_delay -clock [get_clocks net_ft601_clk_i] -max 3.500 [get_ports {{ft601_data_io[*]} {ft601_be_io[*]}}]
+set_output_delay -clock [get_clocks net_ft601_clk_i] -min 4.800 [get_ports {{ft601_data_io[*]} {ft601_be_io[*]}}]
+set_output_delay -clock [get_clocks net_ft601_clk_i] -max 1.000 [get_ports {{ft601_data_io[*]} {ft601_be_io[*]}}]
 
-#set_output_delay -clock [get_clocks net_ft601_clk_i] -max 1.0 [get_ports {ft601_wr_n ft601_rd_n_o ft601_oe_n_o}]
-#set_output_delay -clock [get_clocks net_ft601_clk_i] -min 4.8 [get_ports {ft601_wr_n ft601_rd_n_o ft601_oe_n_o}]
-#set_output_delay -clock [get_clocks net_ft601_clk_i] -max 1.0 [get_ports {ft601_rd_n_o ft601_oe_n_o}]
-#set_output_delay -clock [get_clocks net_ft601_clk_i] -min 4.8 [get_ports {ft601_rd_n_o ft601_oe_n_o}]
-#set_output_delay -clock [get_clocks net_ft601_clk_i] -max 1.0 [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
-#set_output_delay -clock [get_clocks net_ft601_clk_i] -min 4.8 [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
+set_input_delay -clock [get_clocks net_ft601_clk_i] -min 3.000 [get_ports {ft601_rxf_n_i ft601_txe_n_i}]
+set_input_delay -clock [get_clocks net_ft601_clk_i] -max 3.500 [get_ports {ft601_rxf_n_i ft601_txe_n_i}]
 
-#set_property IOB TRUE [get_cells i_pcileech_com/i_pcileech_ft601/FT601_OE_N_reg]
-#set_property IOB TRUE [get_cells i_pcileech_com/i_pcileech_ft601/FT601_RD_N_reg]
-#set_property IOB TRUE [get_cells i_pcileech_com/i_pcileech_ft601/FT601_WR_N_reg]
-#set_property IOB TRUE [get_cells i_pcileech_com/i_pcileech_ft601/txo_dout_reg[*]]
+set_output_delay -clock [get_clocks net_ft601_clk_i] -min 4.800 [get_ports {ft601_wr_n_o ft601_rd_n_o ft601_oe_n_o ft601_rst_n_o ft601_siwu_n_o}]
+set_output_delay -clock [get_clocks net_ft601_clk_i] -max 1.000 [get_ports {ft601_wr_n_o ft601_rd_n_o ft601_oe_n_o ft601_rst_n_o ft601_siwu_n_o}]
+
+# Constrain the LEDs to clean up the timing report
+set_output_delay -clock [get_clocks net_ft601_clk_i] -max 0.000 [get_ports {user_led_ld1 user_led_ld2}]
+set_output_delay -clock [get_clocks net_ft601_clk_i] -min 10.000 [get_ports {user_led_ld1 user_led_ld2}]
+
+# Exclude the reset hold counter from timing analysis as it only exists to
+# generate a reset signal during initial power-on.
+set_false_path -from [get_pins {reset_hold_count64_s_reg[*]/C}]
+set_false_path -to [get_ports {user_led_ld1 user_led_ld2}]
+
+# Force external signal registers to be in the IO Block for timing closure
+# Forcing the following three to IOB makes the design come within 1 net of timing closure
+set_property IOB TRUE [get_cells ft601_rd_n_o_reg*]
+set_property IOB TRUE [get_cells ft601_oe_n_o_reg*]
+set_property IOB TRUE [get_cells ft601_wr_n_o_reg*]
+set_multicycle_path 2 -from [get_pins ft601_wr_n_s_2_reg*/C] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
 
 #set_multicycle_path 2 -from [get_pins i_pcileech_com/i_pcileech_ft601/oe_reg/C] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
-#set_false_path -from [get_pins {tickcount64_reg[*]/C}]
+#set_multicycle_path 2 -from [get_clocks net_ft601_clk_i] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
+#set_multicycle_path 2 -from [get_clocks net_ft601_clk_i] -to [get_ports ft601_oe_n_o]
+#set_multicycle_path 2 -from [get_clocks net_ft601_clk_i] -to [get_ports ft601_rd_n_o]
 #set_false_path -from [get_pins {i_pcileech_fifo/_pcie_core_config_reg[*]/C}]
 #set_false_path -from [get_pins i_pcileech_pcie_a7/i_pcie_7x_0/inst/inst/user_lnk_up_int_reg/C] -to [get_pins {i_pcileech_fifo/_cmd_tx_din_reg[16]/D}]
 #set_false_path -from [get_pins i_pcileech_pcie_a7/i_pcie_7x_0/inst/inst/user_reset_out_reg/C]
 
 #PCIe signals
 #set_property PACKAGE_PIN K1 [get_ports pcie_present]
-set_property PACKAGE_PIN K1 [get_ports usr_rst_n_i]
 #set_property PACKAGE_PIN M1 [get_ports pcie_perst_n]
 #set_property PACKAGE_PIN L2 [get_ports pcie_wake_n]
 #set_property IOSTANDARD LVCMOS33 [get_ports pcie_present]
-set_property IOSTANDARD LVCMOS33 [get_ports usr_rst_n_i]
 #set_property IOSTANDARD LVCMOS33 [get_ports pcie_perst_n]
 #set_property IOSTANDARD LVCMOS33 [get_ports pcie_wake_n]
 
