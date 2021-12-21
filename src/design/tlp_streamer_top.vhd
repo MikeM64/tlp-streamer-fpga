@@ -27,9 +27,9 @@ end entity tlp_streamer;
 
 architecture RTL of tlp_streamer is
 
-type ft601_bus_state is (BUS_IDLE, RX_READY, RX_START, RX_WORD_1,
-                         RX_WORD_2, RX_COMPLETE, TX_READY,
-                         TX_START, TX_WORD, TX_COMPLETE);
+type ft601_bus_state is (BUS_IDLE,
+                         RX_READY, RX_START, RX_WORD_1, RX_WORD_2, RX_COMPLETE,
+                         TX_READY, TX_START, TX_WORD, TX_COMPLETE);
 signal current_bus_state, next_bus_state: ft601_bus_state;
 
 signal ft601_be_rd_i: std_logic_vector(3 downto 0);
@@ -50,7 +50,7 @@ signal ft601_wr_n_s_2: std_logic;
 signal fifo_rx_wr_data_s: std_logic_vector(35 downto 0);
 signal fifo_rx_tx_loopback_data_s: std_logic_vector(35 downto 0);
 signal fifo_rx_rd_en_s: std_logic;
-signal fifo_rx_wr_en_s, fifo_rx_wr_en_s_reg: std_logic;
+signal fifo_rx_wr_en_s: std_logic;
 signal fifo_rx_wr_full_s: std_logic;
 signal fifo_rx_rd_empty_s: std_logic;
 signal fifo_rx_rd_valid_s: std_logic;
@@ -69,6 +69,7 @@ signal tlp_streamer_reset_s: std_logic;
 signal ila_trigger_in_s: std_logic;
 signal ila_trigger_in_ack: std_logic;
 signal ila_current_bus_state_s: std_logic_vector(9 downto 0);
+signal ila_next_bus_state_s: std_logic_vector(9 downto 0);
 
 component fifo_36_36_prim IS
   PORT (
@@ -98,7 +99,14 @@ component ila_0 IS
         probe6 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
         probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
         probe8 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe9 : IN STD_LOGIC_VECTOR(9 DOWNTO 0));
+        probe9 : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+        probe10 : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+        probe11 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe12 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe13 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe14 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe15 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+        probe16 : IN STD_LOGIC_VECTOR(3 DOWNTO 0));
 END component ila_0;
 
 begin
@@ -143,7 +151,14 @@ ft601_bus_ila: ila_0
         probe6(0) => ft601_wr_n_s_2,
         probe7(0) => fifo_rx_wr_en_s,
         probe8(0) => fifo_tx_wr_en_s,
-        probe9 => ila_current_bus_state_s);
+        probe9 => ila_current_bus_state_s,
+        probe10 => ila_next_bus_state_s,
+        probe11(0) => fifo_rx_wr_full_s,
+        probe12(0) => fifo_tx_rd_empty_s,
+        probe13(0) => fifo_tx_rd_valid_s,
+        probe14(0) => fifo_rx_rd_valid_s,
+        probe15 => fifo_tx_rd_data_s(31 downto 0),
+        probe16 => fifo_tx_rd_data_s(35 downto 32));
 
 reset_process: process(sys_clk, reset_hold_count64_s, tlp_streamer_reset_s)
 begin
@@ -199,17 +214,16 @@ ft601_clock_process: process(ft601_clk_i, ft601_be_rd_i,
                              fifo_loopback_rd_wr_en_s, ft601_oe_n_s,
                              ft601_rd_n_s, fifo_tx_rd_data_s,
                              fifo_rx_rd_valid_s,
-                             ft601_wr_n_s_1, ft601_wr_n_s_2, fifo_rx_wr_en_s_reg)
+                             ft601_wr_n_s_1, ft601_wr_n_s_2)
 begin
 
-    ft601_siwu_n_o <= '1';
+    ft601_siwu_n_o <= '0';
 
     if (rising_edge(ft601_clk_i)) then
         -- From the datasheet, it looks like signals are expected
         -- to change on the falling edge of the clock and reads
         -- are expected to occur on the rising edge.
         fifo_rx_wr_data_s <= ft601_be_rd_i & ft601_data_rd_i;
-        fifo_rx_wr_en_s <= fifo_rx_wr_en_s_reg;
 
         ft601_oe_n_o <= ft601_oe_n_s;
         ft601_wr_n_s_2 <= ft601_wr_n_s_1;
@@ -244,6 +258,8 @@ end process sys_clk_process;
 fsm_state_process: process(ft601_clk_i, next_bus_state, tlp_streamer_reset_s)
 begin
 
+    ila_next_bus_state_s <= std_logic_vector(to_unsigned(ft601_bus_state'POS(next_bus_state), 10));
+
     if (tlp_streamer_reset_s = '1') then
         current_bus_state <= BUS_IDLE;
     elsif (rising_edge(ft601_clk_i)) then
@@ -261,9 +277,9 @@ begin
     ft601_oe_n_s <= '1';
     ft601_rd_n_s <= '1';
     ft601_wr_n_s_1 <= '1';
-    fifo_rx_wr_en_s_reg <= '0';
+    fifo_rx_wr_en_s <= '0';
     fifo_tx_rd_en_s <= '0';
-    ila_trigger_in_s <= not ft601_rxf_n_i;
+    ila_trigger_in_s <= '0';
 
     case current_bus_state is
         when RX_START =>
@@ -278,7 +294,7 @@ begin
             -- starts clocking valid data
             ft601_oe_n_s <= '0';
             ft601_rd_n_s <= '0';
-            fifo_rx_wr_en_s_reg <= not ft601_rxf_n_i;
+            fifo_rx_wr_en_s <= not ft601_rxf_n_i;
         when RX_COMPLETE =>
             ft601_oe_n_s <= '1';
             ft601_rd_n_s <= '1';
@@ -286,7 +302,7 @@ begin
             fifo_tx_rd_en_s <= '1';
             ft601_wr_n_s_1 <= not fifo_tx_rd_valid_s;
         when TX_WORD =>
-            ft601_wr_n_s_1 <= not fifo_tx_rd_valid_s;
+            ft601_wr_n_s_1 <= '0';--not fifo_tx_rd_valid_s;
             fifo_tx_rd_en_s <= '1';
         when others =>
     end case;
@@ -301,15 +317,13 @@ begin
 
     case current_bus_state is
         when BUS_IDLE =>
-            if (ft601_txe_n_i = '0') then
+            if (ft601_txe_n_i = '0' and fifo_tx_rd_empty_s = '0') then
                 next_bus_state <= TX_READY;
-            elsif (ft601_rxf_n_i = '0') then
+            elsif (ft601_rxf_n_i = '0' and fifo_rx_wr_full_s = '0') then
                 next_bus_state <= RX_READY;
             end if;
         when RX_READY =>
-            if (fifo_rx_wr_full_s = '0') then
-                next_bus_state <= RX_START;
-            end if;
+            next_bus_state <= RX_START;
         when RX_START =>
             next_bus_state <= RX_WORD_1;
         when RX_WORD_1 =>
@@ -321,9 +335,7 @@ begin
         when RX_COMPLETE =>
             next_bus_state <= BUS_IDLE;
         when TX_READY =>
-            if (fifo_tx_rd_empty_s = '0') then
                 next_bus_state <= TX_START;
-            end if;
         when TX_START =>
             next_bus_state <= TX_WORD;
         when TX_WORD =>
