@@ -217,6 +217,11 @@ ft601_clock_process: process(ft601_clk_i, ft601_be_rd_i,
                              ft601_wr_n_s_1, ft601_wr_n_s_2)
 begin
 
+    -- SIWU_N is listed as reserved in the FT601 datasheet.
+    -- It *is* listed in the following datasheet:
+    -- https://www.ftdichip.com/Support/Documents/AppNotes/AN_165_Establishing_Synchronous_245_FIFO_Communications_using_a_Morph-IC-II.pdf
+    -- SI/WU == Send Immediate / Wake Up, assert this signal to send any TX data
+    -- to the USB host immediately or to wake the host up from suspend.
     ft601_siwu_n_o <= '0';
 
     if (rising_edge(ft601_clk_i)) then
