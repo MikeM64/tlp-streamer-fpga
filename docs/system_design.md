@@ -46,29 +46,39 @@ Questions:
 
 **It probably doesn't make sense when starting out to go multi-channel. The design should be modular enough to go multi-channel if required.**
 
-To start, implement a loopback on the USB3 side (which can be kept for later debugging)
-
 ### FPGA Design
 #### USB Loopback
-FT601 => FPGA => FT601 is the goal
+FT601 => FPGA => FT601 is implemented in order to verify the USB comms channel.
 
 ##### USB Packet RX
-The 245 bus mode on the FT601 has the following read state machine. All FT601 signals change on the negative clock edge.
-1. Idle
+The 245 bus mode on the FT601 has the following read state machine. All FT601 signals change on the negative clock edge and should be clocked on the positive edge.
+
+1. `BUS_IDLE`
   - The default state of the bus
-2. RX FIFO Full (at RXF_N from FT601)
-  - This indicates that the FT601 has data waiting to be read out
-3. Controller FIFO Ready (at FIFO ready from controller)
-  - This indicates that the FPGA has started a read transaction
-  - No writes accepted at this time
-4. Read word
-  - Read until nothing is left or buffer full?
-5. Transfer Complete
+  - This will transition to either `RX_READY` or `TX_READY` depending on which signal is asserted by the FT601. `BUS_IDLE` will also check the state of the RX/TX FIFO to make sure there's either space to receive or data to transfer.
+2. `RX_READY`
+  - Wait state before asserting `FT601_OE`
+3. `RX_START`
+  - Asserts `FT601_OE`
+  - Wait state before asserting `FT601_RD`
+4. `RX_WORD_1`
+  - Asserts `FT601_OE` and `FT601_RD`
+  - Wait state before clocking valid data into the RX fifo
+5. `RX_WORD_2`
+  - Same as `RX_WORD_1`, but clocks valid data into the RX FIFO
+  - Seems like the FT601 will keep valid data on the bus for an extra cycle, so we only want to clock one copy
+  - Moves to `RX_COMPLETE` when either there is no more data from the FT601 or
+    the RX FIFO is full
+6. `RX_COMPLETE`
+  - Delay state to de-assert `FT601_OE` and `FT601_RD` before going back to `BUS_IDLE`
+7. `TX_READY`
+  - Wait state before asserting `FT601_WR`
+8. `TX_WORD`
+  - Transmits a word on the FT601 bus
+9. `TX_COMPLETE`
+  - Wait state before going back to `BUS_IDLE`
 
-Need an controller between the RX FIFO and the FT601.
-
-IDLE -> RX_USB (On RXF_N) -> RX_USB_WORD (On FIFO ready) -> RX_USB_DONE (On BE != 0xF) -> IDLE
-
+The controller for FT601 transfers is implemented in `tlp_streamer_ft601.vhd` and provides two FIFOs (one RX from host and one TX to host) as an interface to the rest of the FPGA design.
 
 #### Configuration Block
 This block manages configuration of the FPGA device. It manages the following features:

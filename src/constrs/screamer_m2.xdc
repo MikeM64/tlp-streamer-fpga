@@ -85,10 +85,10 @@ set_false_path -to [get_ports {user_led_ld1 user_led_ld2}]
 
 # Force external signal registers to be in the IO Block for timing closure
 # Forcing the following three to IOB makes the design come within 1 net of timing closure
-set_property IOB TRUE [get_cells ft601_rd_n_o_reg*]
-set_property IOB TRUE [get_cells ft601_oe_n_o_reg*]
-set_property IOB TRUE [get_cells ft601_wr_n_o_reg*]
-set_multicycle_path 2 -from [get_pins ft601_wr_n_s_2_reg*/C] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
+set_property IOB TRUE [get_cells comp_tlp_streamer_ft601/ft601_rd_n_o_reg*]
+set_property IOB TRUE [get_cells comp_tlp_streamer_ft601/ft601_oe_n_o_reg*]
+set_property IOB TRUE [get_cells comp_tlp_streamer_ft601/ft601_wr_n_o_reg*]
+set_multicycle_path 2 -from [get_pins comp_tlp_streamer_ft601/ft601_wr_n_s_2_reg*/C] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
 
 #set_multicycle_path 2 -from [get_pins i_pcileech_com/i_pcileech_ft601/oe_reg/C] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
 #set_multicycle_path 2 -from [get_clocks net_ft601_clk_i] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
