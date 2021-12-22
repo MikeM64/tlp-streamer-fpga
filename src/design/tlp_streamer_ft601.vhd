@@ -10,8 +10,8 @@ use IEEE.numeric_std.all;
 
 entity tlp_streamer_ft601 is
     port (
-        sys_clk         : in    std_logic;
-        sys_reset       : in    std_logic;
+        sys_clk_i       : in    std_logic;
+        sys_reset_i     : in    std_logic;
         ft601_clk_i     : in    std_logic;
         ft601_be_io     : inout std_logic_vector(3 downto 0);
         ft601_data_io   : inout std_logic_vector(31 downto 0);
@@ -110,9 +110,9 @@ begin
 
 ft601_rx_usb_fifo: fifo_36_36_prim
     port map (
-        rst => sys_reset,
+        rst => sys_reset_i,
         wr_clk => ft601_clk_i,
-        rd_clk => sys_clk,
+        rd_clk => sys_clk_i,
         din => fifo_rx_wr_data_s,
         wr_en => fifo_rx_wr_en_s,
         rd_en => ft601_rx_fifo_rd_en_i,
@@ -123,8 +123,8 @@ ft601_rx_usb_fifo: fifo_36_36_prim
 
 ft601_tx_usb_fifo: fifo_36_36_prim
     port map (
-        rst => sys_reset,
-        wr_clk => sys_clk,
+        rst => sys_reset_i,
+        wr_clk => sys_clk_i,
         rd_clk => ft601_clk_i,
         din => ft601_tx_fifo_wr_data_i,
         wr_en => ft601_tx_fifo_wr_en_i,
@@ -204,13 +204,13 @@ begin
 
 end process ft601_clock_process;
 
-ft601_fsm_state_process: process(ft601_clk_i, next_bus_state, sys_reset)
+ft601_fsm_state_process: process(ft601_clk_i, next_bus_state, sys_reset_i)
 begin
 
     ila_next_bus_state_s <= std_logic_vector(to_unsigned(ft601_bus_state'POS(next_bus_state), 10));
-    ft601_rst_n_o <= not sys_reset;
+    ft601_rst_n_o <= not sys_reset_i;
 
-    if (sys_reset = '1') then
+    if (sys_reset_i = '1') then
         current_bus_state <= BUS_IDLE;
     elsif (rising_edge(ft601_clk_i)) then
         current_bus_state <= next_bus_state;

@@ -29,8 +29,8 @@ architecture RTL of tlp_streamer is
 
 component tlp_streamer_ft601 is
     port (
-        sys_clk         : in    std_logic;
-        sys_reset       : in    std_logic;
+        sys_clk_i       : in    std_logic;
+        sys_reset_i     : in    std_logic;
         ft601_clk_i     : in    std_logic;
         ft601_be_io     : inout std_logic_vector(3 downto 0);
         ft601_data_io   : inout std_logic_vector(31 downto 0);
@@ -64,8 +64,8 @@ begin
 
 comp_tlp_streamer_ft601: tlp_streamer_ft601
     port map (
-        sys_clk => sys_clk,
-        sys_reset => tlp_streamer_reset_s,
+        sys_clk_i => sys_clk,
+        sys_reset_i => tlp_streamer_reset_s,
         ft601_clk_i => ft601_clk_i,
         ft601_be_io => ft601_be_io,
         ft601_data_io => ft601_data_io,
