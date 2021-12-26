@@ -71,14 +71,75 @@ The 245 bus mode on the FT601 has the following read state machine. All FT601 si
     the RX FIFO is full
 6. `RX_COMPLETE`
   - Delay state to de-assert `FT601_OE` and `FT601_RD` before going back to `BUS_IDLE`
-7. `TX_READY`
+
+##### USB Packet TX
+Similar to the USB Packet RX state machine, this control the TX process
+
+1. `TX_READY`
   - Wait state before asserting `FT601_WR`
-8. `TX_WORD`
+2. `TX_WORD`
   - Transmits a word on the FT601 bus
-9. `TX_COMPLETE`
+3. `TX_COMPLETE`
   - Wait state before going back to `BUS_IDLE`
 
 The controller for FT601 transfers is implemented in `tlp_streamer_ft601.vhd` and provides two FIFOs (one RX from host and one TX to host) as an interface to the rest of the FPGA design.
+
+#### Host-to-FPGA communications
+Packets sent/received by the FPGA are encoded in network order (Big-endian) for ease of communication with the PCIe core. The host is responsible for translating the packet before sending it.
+
+Each packet MUST have the following header prepended to any data:
+
+```
+typedef enum tsh_msg_type_et {
+    TSH_MSG_UNKNOWN = 0,
+    TSH_MSG_PCIE_CONFIG_READ,
+    TSH_MSG_PCIE_CONFIG_WRITE,
+} __attribute__ ((packed));
+
+struct tlp_streamer_header {
+    uint8_t   tsh_msg_type;
+    uint8_t   tsh_reserved_1;
+    uint16_t  tsh_seq_num;
+} __attribute__((packed));
+```
+
+#### PCIe Configuration Space Requests
+First step in bringing up a PCIe device is respnding to configuration space requests. Refer to "User-Implemented Configuration Space" on page 119 of PG054.
+
+Most of this is handled by the IP hard block in the FPGA. For NVMe emulation,
+BAR0 and BAR1 are of interest. BAR2 is an optional register for NVMe (see 2.1.12 in the NVMe 1.4c specification.) BAR0/1 need to be exposed to the host PC in order to generate TLP requests for the correct memory addresses.
+
+Per the 7-series FPGA documentation, only PCI config space addresses 0xA8 -> 0xFF are able to be handled by user logic. This means that the host software MUST request BAR addresses during its initialization process by querying the configuration interface.
+
+The following structure is used to contain configuration space requests from the host.
+
+```
+struct tlp_streamer_pcie_cfg_cmd {
+    /** Configuration register to read from, see page 109+ from pg054. */
+    uint16_t tspcr_cfg_reg_addr;
+    /** Data returned from the register, or data to write to the register */
+    uint32_t tspcf_cfg_reg_data;
+    /** Which bytes are valid during a cfg_reg write */
+    uint8_t  tspcf_cfg_reg_be;
+};
+```
+
+For example, a request for BAR0 would be sent as:
+```
+{
+    .tspcr_cfg_reg_addr = 0x04,
+    /* tspcf_cfg_reg_data and tspcf_cfg_reg_be may be uninitialized */
+}
+```
+
+And the FPGA would respond:
+```
+{
+    .tspcr_cfg_reg_addr = 0x4,
+    .tspcf_cfg_reg_data = 0xdeadbeef,
+    .tspcf_cfg_reg_be = 0xf,
+}
+```
 
 #### Configuration Block
 This block manages configuration of the FPGA device. It manages the following features:
