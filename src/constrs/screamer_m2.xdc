@@ -2,9 +2,9 @@ set_property PACKAGE_PIN L18 [get_ports {ft601_be_io[0]}]
 set_property PACKAGE_PIN M17 [get_ports {ft601_be_io[1]}]
 set_property PACKAGE_PIN N18 [get_ports {ft601_be_io[2]}]
 set_property PACKAGE_PIN N17 [get_ports {ft601_be_io[3]}]
-set_property PACKAGE_PIN B9  [get_ports {ft601_data_io[0]}]
-set_property PACKAGE_PIN A9  [get_ports {ft601_data_io[1]}]
-set_property PACKAGE_PIN C9  [get_ports {ft601_data_io[2]}]
+set_property PACKAGE_PIN B9 [get_ports {ft601_data_io[0]}]
+set_property PACKAGE_PIN A9 [get_ports {ft601_data_io[1]}]
+set_property PACKAGE_PIN C9 [get_ports {ft601_data_io[2]}]
 set_property PACKAGE_PIN A10 [get_ports {ft601_data_io[3]}]
 set_property PACKAGE_PIN B10 [get_ports {ft601_data_io[4]}]
 set_property PACKAGE_PIN B11 [get_ports {ft601_data_io[5]}]
@@ -41,10 +41,20 @@ set_property PACKAGE_PIN R17 [get_ports ft601_siwu_n_o]
 set_property PACKAGE_PIN P18 [get_ports ft601_txe_n_i]
 set_property PACKAGE_PIN T18 [get_ports ft601_wr_n_o]
 set_property PACKAGE_PIN U15 [get_ports ft601_rst_n_o]
-set_property IOSTANDARD LVCMOS33 [get_ports {ft601_rxf_n_i ft601_txe_n_i ft601_rst_n_o ft601_oe_n_o ft601_rd_n_o ft601_wr_n_o ft601_siwu_n_o}]
+set_property IOSTANDARD LVCMOS33 [get_ports ft601_rxf_n_i]
+set_property IOSTANDARD LVCMOS33 [get_ports ft601_txe_n_i]
+set_property IOSTANDARD LVCMOS33 [get_ports ft601_rst_n_o]
+set_property IOSTANDARD LVCMOS33 [get_ports ft601_oe_n_o]
+set_property IOSTANDARD LVCMOS33 [get_ports ft601_rd_n_o]
+set_property IOSTANDARD LVCMOS33 [get_ports ft601_wr_n_o]
+set_property IOSTANDARD LVCMOS33 [get_ports ft601_siwu_n_o]
 set_property IOSTANDARD LVCMOS33 [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
 set_property SLEW FAST [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
-set_property SLEW FAST [get_ports {ft601_siwu_n_o ft601_wr_n_o ft601_rd_n_o ft601_oe_n_o ft601_rst_n_o}]
+set_property SLEW FAST [get_ports ft601_siwu_n_o]
+set_property SLEW FAST [get_ports ft601_wr_n_o]
+set_property SLEW FAST [get_ports ft601_rd_n_o]
+set_property SLEW FAST [get_ports ft601_oe_n_o]
+set_property SLEW FAST [get_ports ft601_rst_n_o]
 
 # LEDs are active high
 set_property PACKAGE_PIN V17 [get_ports user_led_ld1]
@@ -80,7 +90,7 @@ set_output_delay -clock [get_clocks net_ft601_clk_i] -min 10.000 [get_ports {use
 
 # Exclude the reset hold counter from timing analysis as it only exists to
 # generate a reset signal during initial power-on.
-set_false_path -from [get_pins {reset_hold_count64_s_reg[*]/C}]
+set_false_path -from [get_pins {comp_tlp_streamer_reset/reset_hold_count64_s_reg[*]/C}]
 set_false_path -to [get_ports {user_led_ld1 user_led_ld2}]
 
 # Force external signal registers to be in the IO Block for timing closure
@@ -88,7 +98,7 @@ set_false_path -to [get_ports {user_led_ld1 user_led_ld2}]
 set_property IOB TRUE [get_cells comp_tlp_streamer_ft601/ft601_rd_n_o_reg*]
 set_property IOB TRUE [get_cells comp_tlp_streamer_ft601/ft601_oe_n_o_reg*]
 set_property IOB TRUE [get_cells comp_tlp_streamer_ft601/ft601_wr_n_o_reg*]
-set_multicycle_path 2 -from [get_pins comp_tlp_streamer_ft601/ft601_wr_n_s_2_reg*/C] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
+set_multicycle_path -from [get_pins comp_tlp_streamer_ft601/ft601_wr_n_s_2_reg*/C] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}] 2
 
 #set_multicycle_path 2 -from [get_pins i_pcileech_com/i_pcileech_ft601/oe_reg/C] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
 #set_multicycle_path 2 -from [get_clocks net_ft601_clk_i] -to [get_ports {{ft601_be_io[*]} {ft601_data_io[*]}}]
@@ -103,9 +113,11 @@ set_multicycle_path 2 -from [get_pins comp_tlp_streamer_ft601/ft601_wr_n_s_2_reg
 set_property PACKAGE_PIN M1 [get_ports pcie_perst_n_i]
 set_property PACKAGE_PIN L2 [get_ports pcie_wake_n_o]
 #set_property IOSTANDARD LVCMOS33 [get_ports pcie_present]
-set_property IOSTANDARD LVCMOS33 [get_ports {pcie_perst_n_i pcie_wake_n_o}]
+set_property IOSTANDARD LVCMOS33 [get_ports pcie_perst_n_i]
+set_property IOSTANDARD LVCMOS33 [get_ports pcie_wake_n_o]
 
 #set_property LOC GTPE2_CHANNEL_X0Y2 [get_cells {comp_tlp_streamer_pcie/comp_pcie_7x_0/U0/inst/gt_top_i/pipe_wrapper_i/pipe_lane[0].gt_wrapper_i/gtp_channel.gtpe2_channel_i}]
+set_property LOC GTPE2_CHANNEL_X0Y0 [get_cells {comp_tlp_streamer_pcie/comp_pcie_7x_0/U0/inst/gt_top_i/pipe_wrapper_i/pipe_lane[0].gt_wrapper_i/gtp_channel.gtpe2_channel_i}]
 set_property PACKAGE_PIN E3 [get_ports {pcie_rxn_i[0]}]
 set_property PACKAGE_PIN E4 [get_ports {pcie_rxp_i[0]}]
 set_property PACKAGE_PIN H1 [get_ports {pcie_txn_o[0]}]
@@ -126,11 +138,11 @@ set_property PACKAGE_PIN H2 [get_ports {pcie_txp_o[0]}]
 #set_property PACKAGE_PIN B1 [get_ports {pcie_txn_o[3]}]
 #set_property PACKAGE_PIN B2 [get_ports {pcie_txp_o[3]}]
 
-set_property PACKAGE_PIN D5 [get_ports pcie_clk_n_i]
 set_property PACKAGE_PIN D6 [get_ports pcie_clk_p_i]
+set_property PACKAGE_PIN D5 [get_ports pcie_clk_n_i]
 
 #set_property LOC GTPE2_COMMON_X0Y0 [get_cells {comp_tlp_streamer_pcie/ibufds_gte2_pcie_clk}]
-create_clock -name pcie_ref_clk -period 10.0 [get_nets pcie_clk_p_i]
+create_clock -period 10.000 -name pcie_ref_clk [get_nets pcie_clk_p_i]
 
 set_property CFGBVS Vcco [current_design]
 set_property CONFIG_VOLTAGE 3.3 [current_design]
@@ -138,3 +150,12 @@ set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 set_property BITSTREAM.CONFIG.SPI_FALL_EDGE YES [current_design]
 set_property BITSTREAM.CONFIG.CONFIGRATE 66 [current_design]
+
+set_operating_conditions -airflow 0
+set_operating_conditions -board_layers 4to7
+set_operating_conditions -board small
+set_operating_conditions -heatsink none
+set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
+set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
+set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
+connect_debug_port dbg_hub/clk [get_nets ft601_clk_i_IBUF_BUFG]
