@@ -89,8 +89,8 @@ component tlp_streamer_loopback is
         sys_clk_i   : in std_logic;
         sys_reset_i : in std_logic;
         -- Input from dispatch
-        dispatch_input : in dispatch_producer_r;
-        dispatch_output : out dispatch_consumer_r;
+        dispatch_i : in dispatch_producer_r;
+        dispatch_o : out dispatch_consumer_r;
         -- Output to TX
         loop_wr_en_o : out std_logic;
         loop_wr_full_i : in std_logic;
@@ -187,8 +187,8 @@ comp_tlp_streamer_loopback: tlp_streamer_loopback
         sys_clk_i => sys_clk,
         sys_reset_i => tlp_streamer_reset_s,
         -- Input from dispatch
-        dispatch_input => loopback_queue_out,
-        dispatch_output => loopback_queue_in,
+        dispatch_i => loopback_queue_out,
+        dispatch_o => loopback_queue_in,
         -- Output to TX
         loop_wr_en_o => ft601_tx_wr_en_s,
         loop_wr_full_i => ft601_wr_full_s,
