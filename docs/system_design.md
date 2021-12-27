@@ -91,17 +91,29 @@ Each packet MUST have the following header prepended to any data:
 
 ```
 typedef enum tsh_msg_type_et {
-    TSH_MSG_UNKNOWN = 0,
-    TSH_MSG_PCIE_CONFIG_READ,
-    TSH_MSG_PCIE_CONFIG_WRITE,
+    /** Loopback the packet back to the host */
+    TSH_MSG_LOOPBACK = 0,
+    /** PCIe Configuration Space packet */
+    TSH_MSG_PCIE_CONFIG,
 } __attribute__ ((packed));
 
+/*
+ * NOTE: The header must ALWAYS be size which is a multiple of a uint32_t to
+ * allow for easy decoding on the FPGA.
+ */
 struct tlp_streamer_header {
     uint8_t   tsh_msg_type;
     uint8_t   tsh_reserved_1;
+    uint16_t  tsh_msg_len;
     uint16_t  tsh_seq_num;
 } __attribute__((packed));
 ```
+
+#### Host Packet Processing
+1) Parse header
+  - Determine which component deals with the request
+2) Dispatch request
+  - Write header + packet into component FIFO
 
 #### PCIe Configuration Space Requests
 First step in bringing up a PCIe device is respnding to configuration space requests. Refer to "User-Implemented Configuration Space" on page 119 of PG054.
@@ -116,28 +128,34 @@ The following structure is used to contain configuration space requests from the
 ```
 struct tlp_streamer_pcie_cfg_cmd {
     /** Configuration register to read from, see page 109+ from pg054. */
-    uint16_t tspcr_cfg_reg_addr;
-    /** Data returned from the register, or data to write to the register */
-    uint32_t tspcf_cfg_reg_data;
+    uint16_t tspcc_cfg_reg_addr;
+    /** Read vs. write */
+    uint8_t  tspcc_cfg_write;
     /** Which bytes are valid during a cfg_reg write */
-    uint8_t  tspcf_cfg_reg_be;
+    uint8_t  tspcc_cfg_reg_be;
+    /** uint32_t padding alignment */
+    uint8_t  tspcc_padding;
+    /** Data returned from the register, or data to write to the register */
+    uint32_t tspcc_cfg_reg_data;
 };
 ```
 
-For example, a request for BAR0 would be sent as:
+For example, a request to read BAR0 would be sent as:
 ```
 {
-    .tspcr_cfg_reg_addr = 0x04,
-    /* tspcf_cfg_reg_data and tspcf_cfg_reg_be may be uninitialized */
+    .tspcc_cfg_reg_addr = 0x04,
+    .tspcc_cfg_write = 0,
+    /* tspcc_cfg_reg_data and tspcf_cfg_reg_be may be uninitialized */
 }
 ```
 
 And the FPGA would respond:
 ```
 {
-    .tspcr_cfg_reg_addr = 0x4,
-    .tspcf_cfg_reg_data = 0xdeadbeef,
-    .tspcf_cfg_reg_be = 0xf,
+    .tspcc_cfg_reg_addr = 0x4,
+    .tspcc_cfg_write = 0,
+    .tspcc_cfg_reg_data = 0xdeadbeef,
+    .tspcc_cfg_reg_be = 0xf,
 }
 ```
 
