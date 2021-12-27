@@ -80,8 +80,8 @@ component tlp_streamer_rx_dispatch is
          fifo_rd_valid_i    : in std_logic;
          fifo_rd_data_i     : in std_logic_vector(35 downto 0);
          -- Output FIFOs to dispatch to
-         rx_dispatch_queue_out : out dispatch_producer_r_array(NUM_OUTPUT_QUEUES-1 downto 0);
-         rx_dispatch_queue_in  : in dispatch_consumer_r_array(NUM_OUTPUT_QUEUES-1 downto 0));
+         dispatch_o_arr     : out dispatch_producer_r_array(NUM_OUTPUT_QUEUES-1 downto 0);
+         dispatch_i_arr     : in dispatch_consumer_r_array(NUM_OUTPUT_QUEUES-1 downto 0));
 end component tlp_streamer_rx_dispatch;
 
 component tlp_streamer_loopback is
@@ -179,8 +179,8 @@ comp_tlp_streamer_rx_dispatch: tlp_streamer_rx_dispatch
          fifo_rd_data_i => ft601_rx_fifo_data_s,
          -- Output Components
          -- These MUST correspond to tsh_msg_type_et.
-         rx_dispatch_queue_out(0) => loopback_queue_out,
-         rx_dispatch_queue_in(0) => loopback_queue_in);
+         dispatch_o_arr(0) => loopback_queue_out,
+         dispatch_i_arr(0) => loopback_queue_in);
 
 comp_tlp_streamer_loopback: tlp_streamer_loopback
     port map(
