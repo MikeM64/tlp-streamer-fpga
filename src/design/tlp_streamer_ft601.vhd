@@ -187,13 +187,9 @@ begin
     -- to the USB host immediately or to wake the host up from suspend.
     ft601_siwu_n_o <= '0';
     ft601_rx_fifo_rd_valid_o <= ft601_rx_fifo_rd_valid_s;
+    fifo_rx_wr_data_s <= ft601_be_rd_i & ft601_data_rd_i;
 
     if (rising_edge(ft601_clk_i)) then
-        -- From the datasheet, it looks like signals are expected
-        -- to change on the falling edge of the clock and reads
-        -- are expected to occur on the rising edge.
-        fifo_rx_wr_data_s <= ft601_be_rd_i & ft601_data_rd_i;
-
         ft601_oe_n_o <= ft601_oe_n_s;
         ft601_wr_n_s_2 <= ft601_wr_n_s_1;
         ft601_rd_n_o <= ft601_rd_n_s;

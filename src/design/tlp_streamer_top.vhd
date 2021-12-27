@@ -8,6 +8,8 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
+use work.tlp_streamer_records.all;
+
 entity tlp_streamer is
     port (
         -- FT601 Pins
@@ -38,6 +40,12 @@ end entity tlp_streamer;
 
 architecture RTL of tlp_streamer is
 
+component tlp_streamer_reset is
+    port(
+        sys_clk_i   : in std_logic;
+        sys_reset_o : out std_logic);
+end component tlp_streamer_reset;
+
 component tlp_streamer_ft601 is
     port (
         sys_clk_i       : in    std_logic;
@@ -61,6 +69,34 @@ component tlp_streamer_ft601 is
         ft601_tx_fifo_wr_data_i     : in std_logic_vector(35 downto 0));
 end component tlp_streamer_ft601;
 
+component tlp_streamer_rx_dispatch is
+    generic(NUM_OUTPUT_QUEUES : integer);
+    port(
+         sys_clk_i          : in std_logic;
+         sys_reset_i        : in std_logic;
+         -- Input FIFO to dispatch
+         fifo_rd_en_o       : out std_logic;
+         fifo_rd_empty_i    : in std_logic;
+         fifo_rd_valid_i    : in std_logic;
+         fifo_rd_data_i     : in std_logic_vector(35 downto 0);
+         -- Output FIFOs to dispatch to
+         rx_dispatch_queue_out : out rx_dispatch_queue_out_array(NUM_OUTPUT_QUEUES-1 downto 0);
+         rx_dispatch_queue_in  : in rx_dispatch_queue_in_array(NUM_OUTPUT_QUEUES-1 downto 0));
+end component tlp_streamer_rx_dispatch;
+
+component tlp_streamer_loopback is
+    port(
+        sys_clk_i   : in std_logic;
+        sys_reset_i : in std_logic;
+        -- Input from dispatch
+        dispatch_input : in rx_queue_output_out;
+        dispatch_output : out rx_queue_out_in;
+        -- Output to TX
+        loop_wr_en_o : out std_logic;
+        loop_wr_full_i : in std_logic;
+        loop_wr_data_o : out std_logic_vector(35 downto 0));
+end component tlp_streamer_loopback;
+
 component tlp_streamer_pcie is
     port(
         user_led_ld2 : out std_logic;
@@ -76,17 +112,24 @@ component tlp_streamer_pcie is
         pcie_usr_link_up_o : out std_logic);
 end component tlp_streamer_pcie;
 
--- Signals related to USB loopback
-signal fifo_rx_tx_loopback_data_s: std_logic_vector(35 downto 0);
-signal fifo_loopback_rd_wr_en_s: std_logic;
-signal fifo_loopback_rd_en_s, fifo_loopback_rd_empty_s, ft601_usb_loopback_rd_valid_s: std_logic;
-signal ft601_loopback_tx_wr_en_s, ft601_loopback_tx_wr_full_s: std_logic;
+-- Signals for FT601 RX/TX
+signal ft601_rx_fifo_data_s, ft601_wr_data_s: std_logic_vector(35 downto 0);
+signal ft601_rx_fifo_rd_en_s, ft601_rx_fifo_rd_empty_s, ft601_rx_fifo_rd_valid_s: std_logic;
+signal ft601_tx_wr_en_s, ft601_wr_full_s : std_logic;
 
 -- Signals for system reset
-signal reset_hold_count64_s: unsigned(63 downto 0) := (others => '0');
 signal tlp_streamer_reset_s: std_logic;
 
+-- Signals for RX dispatch queues
+signal loopback_queue_out: rx_queue_output_out;
+signal loopback_queue_in: rx_queue_out_in;
+
 begin
+
+comp_tlp_streamer_reset: tlp_streamer_reset
+    port map(
+        sys_clk_i => sys_clk,
+        sys_reset_o => tlp_streamer_reset_s);
 
 comp_tlp_streamer_ft601: tlp_streamer_ft601
     port map (
@@ -102,13 +145,13 @@ comp_tlp_streamer_ft601: tlp_streamer_ft601
         ft601_txe_n_i => ft601_txe_n_i,
         ft601_wr_n_o => ft601_wr_n_o,
         ft601_siwu_n_o => ft601_siwu_n_o,
-        ft601_rx_fifo_rd_en_i => fifo_loopback_rd_en_s,
-        ft601_rx_fifo_rd_empty_o => fifo_loopback_rd_empty_s,
-        ft601_rx_fifo_rd_valid_o => ft601_usb_loopback_rd_valid_s,
-        ft601_rx_fifo_rd_data_o => fifo_rx_tx_loopback_data_s,
-        ft601_tx_fifo_wr_en_i => ft601_loopback_tx_wr_en_s,
-        ft601_tx_fifo_wr_full_o => ft601_loopback_tx_wr_full_s,
-        ft601_tx_fifo_wr_data_i => fifo_rx_tx_loopback_data_s);
+        ft601_rx_fifo_rd_en_i => ft601_rx_fifo_rd_en_s,
+        ft601_rx_fifo_rd_empty_o => ft601_rx_fifo_rd_empty_s,
+        ft601_rx_fifo_rd_valid_o => ft601_rx_fifo_rd_valid_s,
+        ft601_rx_fifo_rd_data_o => ft601_rx_fifo_data_s,
+        ft601_tx_fifo_wr_en_i => ft601_tx_wr_en_s,
+        ft601_tx_fifo_wr_full_o => ft601_wr_full_s,
+        ft601_tx_fifo_wr_data_i => ft601_wr_data_s);
 
 comp_tlp_streamer_pcie: tlp_streamer_pcie
     port map (
@@ -124,56 +167,33 @@ comp_tlp_streamer_pcie: tlp_streamer_pcie
         pcie_rxn_i => pcie_rxn_i,
         pcie_usr_link_up_o => open);
 
-reset_process: process(sys_clk, reset_hold_count64_s, tlp_streamer_reset_s)
-begin
-    user_led_ld1 <= not tlp_streamer_reset_s;
+comp_tlp_streamer_rx_dispatch: tlp_streamer_rx_dispatch
+    generic map (NUM_OUTPUT_QUEUES => 1)
+    port map(
+         sys_clk_i => sys_clk,
+         sys_reset_i => tlp_streamer_reset_s,
+         -- Input FIFO to dispatch
+         fifo_rd_en_o => ft601_rx_fifo_rd_en_s,
+         fifo_rd_empty_i => ft601_rx_fifo_rd_empty_s,
+         fifo_rd_valid_i => ft601_rx_fifo_rd_valid_s,
+         fifo_rd_data_i => ft601_rx_fifo_data_s,
+         -- Output Components
+         -- These MUST correspond to tsh_msg_type_et.
+         rx_dispatch_queue_out(0) => loopback_queue_out,
+         rx_dispatch_queue_in(0) => loopback_queue_in);
 
-    -- Self-generate a 500ns reset pulse
-    if (reset_hold_count64_s < to_unsigned(50, 64)) then
-        tlp_streamer_reset_s <= '1';
-    else
-        tlp_streamer_reset_s <= '0';
-    end if;
+comp_tlp_streamer_loopback: tlp_streamer_loopback
+    port map(
+        sys_clk_i => sys_clk,
+        sys_reset_i => tlp_streamer_reset_s,
+        -- Input from dispatch
+        dispatch_input => loopback_queue_out,
+        dispatch_output => loopback_queue_in,
+        -- Output to TX
+        loop_wr_en_o => ft601_tx_wr_en_s,
+        loop_wr_full_i => ft601_wr_full_s,
+        loop_wr_data_o => ft601_wr_data_s);
 
-    if (rising_edge(sys_clk)) then
-        reset_hold_count64_s <= reset_hold_count64_s + 1;
-    end if;
-
-end process reset_process;
-
-fifo_loopback_ctrl: process(fifo_loopback_rd_empty_s, ft601_loopback_tx_wr_full_s,
-                            ft601_usb_loopback_rd_valid_s)
-begin
-
-    fifo_loopback_rd_wr_en_s <= '0';
-
-    if (ft601_loopback_tx_wr_full_s = '0') then
-        if (fifo_loopback_rd_empty_s = '0' or ft601_usb_loopback_rd_valid_s = '1') then
-            fifo_loopback_rd_wr_en_s <= '1';
-        end if;
-    end if;
-
-end process fifo_loopback_ctrl;
-
-
-sys_clk_process: process(sys_clk, tlp_streamer_reset_s, fifo_loopback_rd_wr_en_s,
-                         ft601_usb_loopback_rd_valid_s)
-begin
-
-    -- Only write data to the TX FIFO if the output data from the
-    -- RX FIFO is valid
-    ft601_loopback_tx_wr_en_s <= fifo_loopback_rd_wr_en_s and ft601_usb_loopback_rd_valid_s;
-
-    if (tlp_streamer_reset_s = '1') then
-        fifo_loopback_rd_en_s <= '0';
-        ft601_loopback_tx_wr_en_s <= '0';
-    elsif (rising_edge(sys_clk)) then
-        -- An additional buffer is needed for the FIFO wr_en signal
-        -- so that it is in sync with the data. Without the extra register
-        -- the wr_en signal would be asserted before the data was ready.
-        fifo_loopback_rd_en_s <= fifo_loopback_rd_wr_en_s;
-    end if;
-
-end process sys_clk_process;
+user_led_ld1 <= tlp_streamer_reset_s;
 
 end architecture RTL;
