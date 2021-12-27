@@ -80,8 +80,8 @@ component tlp_streamer_rx_dispatch is
          fifo_rd_valid_i    : in std_logic;
          fifo_rd_data_i     : in std_logic_vector(35 downto 0);
          -- Output FIFOs to dispatch to
-         rx_dispatch_queue_out : out rx_dispatch_queue_out_array(NUM_OUTPUT_QUEUES-1 downto 0);
-         rx_dispatch_queue_in  : in rx_dispatch_queue_in_array(NUM_OUTPUT_QUEUES-1 downto 0));
+         rx_dispatch_queue_out : out dispatch_producer_r_array(NUM_OUTPUT_QUEUES-1 downto 0);
+         rx_dispatch_queue_in  : in dispatch_consumer_r_array(NUM_OUTPUT_QUEUES-1 downto 0));
 end component tlp_streamer_rx_dispatch;
 
 component tlp_streamer_loopback is
@@ -89,8 +89,8 @@ component tlp_streamer_loopback is
         sys_clk_i   : in std_logic;
         sys_reset_i : in std_logic;
         -- Input from dispatch
-        dispatch_input : in rx_queue_output_out;
-        dispatch_output : out rx_queue_out_in;
+        dispatch_input : in dispatch_producer_r;
+        dispatch_output : out dispatch_consumer_r;
         -- Output to TX
         loop_wr_en_o : out std_logic;
         loop_wr_full_i : in std_logic;
@@ -121,8 +121,8 @@ signal ft601_tx_wr_en_s, ft601_wr_full_s : std_logic;
 signal tlp_streamer_reset_s: std_logic;
 
 -- Signals for RX dispatch queues
-signal loopback_queue_out: rx_queue_output_out;
-signal loopback_queue_in: rx_queue_out_in;
+signal loopback_queue_out: dispatch_producer_r;
+signal loopback_queue_in: dispatch_consumer_r;
 
 begin
 

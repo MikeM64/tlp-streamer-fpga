@@ -15,8 +15,8 @@ entity tlp_streamer_loopback is
         sys_clk_i   : in std_logic;
         sys_reset_i : in std_logic;
         -- Input from dispatch
-        dispatch_input : in rx_queue_output_out;
-        dispatch_output : out rx_queue_out_in;
+        dispatch_input : in dispatch_producer_r;
+        dispatch_output : out dispatch_consumer_r;
         -- Output to TX
         loop_wr_en_o : out std_logic;
         loop_wr_full_i : in std_logic;
@@ -29,9 +29,9 @@ begin
 
 -- Only write data to the TX FIFO if the output data from the
 -- RX FIFO is valid
-dispatch_output.dispatch_output_wr_full <= loop_wr_full_i;
-loop_wr_data_o <= dispatch_input.dispatch_output_wr_data;
-loop_wr_en_o <= dispatch_input.dispatch_output_wr_en and
-                dispatch_input.dispatch_output_valid;
+dispatch_output.dispatch_wr_full <= loop_wr_full_i;
+loop_wr_data_o <= dispatch_input.dispatch_wr_data;
+loop_wr_en_o <= dispatch_input.dispatch_wr_en and
+                dispatch_input.dispatch_valid;
 
 end architecture RTL;

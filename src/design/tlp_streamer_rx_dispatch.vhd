@@ -21,8 +21,8 @@ entity tlp_streamer_rx_dispatch is
          fifo_rd_valid_i    : in std_logic;
          fifo_rd_data_i     : in std_logic_vector(35 downto 0);
          -- Output FIFOs to dispatch to
-         rx_dispatch_queue_out : out rx_dispatch_queue_out_array(NUM_OUTPUT_QUEUES-1 downto 0);
-         rx_dispatch_queue_in  : in rx_dispatch_queue_in_array(NUM_OUTPUT_QUEUES-1 downto 0));
+         rx_dispatch_queue_out : out dispatch_producer_r_array(NUM_OUTPUT_QUEUES-1 downto 0);
+         rx_dispatch_queue_in  : in dispatch_consumer_r_array(NUM_OUTPUT_QUEUES-1 downto 0));
 
 end entity tlp_streamer_rx_dispatch;
 
@@ -46,10 +46,10 @@ begin
     if (sys_reset_i = '1') then
         current_dispatch_state_s <= DISPATCH_IDLE;
         for i in 0 to NUM_OUTPUT_QUEUES-1 loop
-            rx_dispatch_queue_out(i).dispatch_output_wr_data <= (others => '0');
-            rx_dispatch_queue_out(i).dispatch_output_valid <= '0';
-            rx_dispatch_queue_out(i).dispatch_output_empty <= '1';
-            rx_dispatch_queue_out(i).dispatch_output_wr_en <= '0';
+            rx_dispatch_queue_out(i).dispatch_wr_data <= (others => '0');
+            rx_dispatch_queue_out(i).dispatch_valid <= '0';
+            rx_dispatch_queue_out(i).dispatch_empty <= '1';
+            rx_dispatch_queue_out(i).dispatch_wr_en <= '0';
         end loop;
     elsif (rising_edge(sys_clk_i)) then
         current_dispatch_state_s <= next_dispatch_state_s;
@@ -58,10 +58,10 @@ begin
         dispatch_rd_valid_s <= fifo_rd_valid_i;
         dispatch_data_s <= fifo_rd_data_i;
 
-        rx_dispatch_queue_out(dispatch_output_queue).dispatch_output_wr_data <= dispatch_data_s;
-        rx_dispatch_queue_out(dispatch_output_queue).dispatch_output_valid <= dispatch_rd_valid_s;
-        rx_dispatch_queue_out(dispatch_output_queue).dispatch_output_empty <= dispatch_rd_empty_s;
-        rx_dispatch_queue_out(dispatch_output_queue).dispatch_output_wr_en <= dispatch_wr_en_s;
+        rx_dispatch_queue_out(dispatch_output_queue).dispatch_wr_data <= dispatch_data_s;
+        rx_dispatch_queue_out(dispatch_output_queue).dispatch_valid <= dispatch_rd_valid_s;
+        rx_dispatch_queue_out(dispatch_output_queue).dispatch_empty <= dispatch_rd_empty_s;
+        rx_dispatch_queue_out(dispatch_output_queue).dispatch_wr_en <= dispatch_wr_en_s;
 
         case next_dispatch_state_s is
             when DISPATCH_IDLE =>
