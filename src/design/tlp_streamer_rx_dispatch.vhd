@@ -28,7 +28,7 @@ end entity tlp_streamer_rx_dispatch;
 
 architecture RTL of tlp_streamer_rx_dispatch is
 
-type dispatch_state is (DISPATCH_IDLE, DISPATCH_PARSE_HEADER_1, DISPATCH_PARSE_HEADER_2,
+type dispatch_state is (DISPATCH_IDLE, DISPATCH_PARSE_HEADER,
                         DISPATCH_WRITE_PACKET, DISPATCH_COMPLETE);
 
 signal current_dispatch_state_s, next_dispatch_state_s: dispatch_state;
@@ -66,9 +66,7 @@ begin
         case next_dispatch_state_s is
             when DISPATCH_IDLE =>
                 dispatch_output_queue <= 0;
-            when DISPATCH_PARSE_HEADER_1 =>
-                dispatch_output_queue <= 0;
-            when DISPATCH_PARSE_HEADER_2 =>
+            when DISPATCH_PARSE_HEADER =>
                 if (dispatch_rd_valid_s = '1') then
                     -- tsh_msg_type
                     dispatch_output_queue <= to_integer(unsigned(dispatch_data_s(7 downto 0)));
@@ -93,11 +91,7 @@ begin
 
     case current_dispatch_state_s is
         when DISPATCH_IDLE =>
-        when DISPATCH_PARSE_HEADER_1 =>
-            -- Assert rd_en so the first word of the header
-            -- is available for parsing in the next cycle
-            dispatch_rd_en_s <= '1';
-        when DISPATCH_PARSE_HEADER_2 =>
+        when DISPATCH_PARSE_HEADER =>
             -- Now that the header is available, it can be written-through to the
             -- output component
             dispatch_rd_en_s <= '1';
@@ -120,11 +114,9 @@ begin
     case current_dispatch_state_s is
         when DISPATCH_IDLE =>
             if (dispatch_rd_empty_s = '0') then
-                next_dispatch_state_s <= DISPATCH_PARSE_HEADER_1;
+                next_dispatch_state_s <= DISPATCH_PARSE_HEADER;
             end if;
-        when DISPATCH_PARSE_HEADER_1 =>
-            next_dispatch_state_s <= DISPATCH_PARSE_HEADER_2;
-        when DISPATCH_PARSE_HEADER_2 =>
+        when DISPATCH_PARSE_HEADER =>
             -- Wait for valid data to appear before continuing
             if (dispatch_rd_valid_s = '1') then
                 next_dispatch_state_s <= DISPATCH_WRITE_PACKET;
