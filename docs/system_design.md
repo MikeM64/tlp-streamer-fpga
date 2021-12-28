@@ -20,9 +20,6 @@ Client could be any PCIe emulator:
   - MUST have counters available for debugging and statistics (USB Packet RX/TX, PCIe TLP RX/TX, etc...)
   - MAY be hot-restart capable to change VID/PID/device class from the client software (dependent on FPGA support)
 
-## Open Tasks
-  - FT601 USB Loopback
-
 ## Design
 ### USB to FPGA Design
 The FT601 supports both synchronous single-channel and multi-channel operation. Maximum of 8 channels - 4 IN and 4 OUT.
