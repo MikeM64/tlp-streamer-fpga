@@ -102,9 +102,13 @@ typedef enum tsh_msg_type_et {
  * allow for easy decoding on the FPGA.
  */
 struct tlp_streamer_header {
+    /** @enum tsh_msg_type_et */
     uint8_t   tsh_msg_type;
+    /** Padding */
     uint8_t   tsh_reserved_1;
+    /** Number of DWORDs in the packet, including the header */
     uint16_t  tsh_msg_len;
+    /** Host-defined sequence number, for debugging */
     uint16_t  tsh_seq_num;
 } __attribute__((packed));
 ```
