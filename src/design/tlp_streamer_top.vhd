@@ -84,6 +84,20 @@ component tlp_streamer_rx_dispatch is
          dispatch_i_arr     : in dispatch_consumer_r_array(NUM_OUTPUT_QUEUES-1 downto 0));
 end component tlp_streamer_rx_dispatch;
 
+component tlp_streamer_tx_arbiter is
+    generic (NUM_INPUT_QUEUES : integer);
+    port (
+        sys_clk_i   : in std_logic;
+        sys_reset_i : in std_logic;
+        -- Input FIFOs to arbitrate
+        arbiter_o_arr : out arbiter_producer_r_array(NUM_INPUT_QUEUES-1 downto 0);
+        arbiter_i_arr : in arbiter_consumer_r_array(NUM_INPUT_QUEUES-1 downto 0);
+        -- Output FIFO to feed
+        arbiter_output_wr_en_o : out std_logic;
+        arbiter_output_wr_full_i : in std_logic;
+        arbiter_output_wr_data_o : out std_logic_vector(35 downto 0));
+end component tlp_streamer_tx_arbiter;
+
 component tlp_streamer_loopback is
     port(
         sys_clk_i   : in std_logic;
@@ -92,9 +106,8 @@ component tlp_streamer_loopback is
         dispatch_i : in dispatch_producer_r;
         dispatch_o : out dispatch_consumer_r;
         -- Output to TX
-        loop_wr_en_o : out std_logic;
-        loop_wr_full_i : in std_logic;
-        loop_wr_data_o : out std_logic_vector(35 downto 0));
+        arbiter_i : in arbiter_producer_r;
+        arbiter_o : out arbiter_consumer_r);
 end component tlp_streamer_loopback;
 
 component tlp_streamer_pcie is
@@ -123,6 +136,10 @@ signal tlp_streamer_reset_s: std_logic;
 -- Signals for RX dispatch queues
 signal loopback_queue_out: dispatch_producer_r;
 signal loopback_queue_in: dispatch_consumer_r;
+
+-- Signals for TX arbitration
+signal loopback_tx_out: arbiter_producer_r;
+signal loopback_tx_in: arbiter_consumer_r;
 
 begin
 
@@ -182,6 +199,19 @@ comp_tlp_streamer_rx_dispatch: tlp_streamer_rx_dispatch
          dispatch_o_arr(0) => loopback_queue_out,
          dispatch_i_arr(0) => loopback_queue_in);
 
+comp_tlp_streamer_tx_arbiter: tlp_streamer_tx_arbiter
+    generic map (NUM_INPUT_QUEUES => 1)
+    port map (
+        sys_clk_i => sys_clk,
+        sys_reset_i => tlp_streamer_reset_s,
+        -- Input FIFOs to arbitrate
+        arbiter_o_arr(0) => loopback_tx_out,
+        arbiter_i_arr(0) => loopback_tx_in,
+        -- Output FIFO to feed
+        arbiter_output_wr_en_o => ft601_tx_wr_en_s,
+        arbiter_output_wr_full_i => ft601_wr_full_s,
+        arbiter_output_wr_data_o => ft601_wr_data_s);
+
 comp_tlp_streamer_loopback: tlp_streamer_loopback
     port map(
         sys_clk_i => sys_clk,
@@ -190,9 +220,8 @@ comp_tlp_streamer_loopback: tlp_streamer_loopback
         dispatch_i => loopback_queue_out,
         dispatch_o => loopback_queue_in,
         -- Output to TX
-        loop_wr_en_o => ft601_tx_wr_en_s,
-        loop_wr_full_i => ft601_wr_full_s,
-        loop_wr_data_o => ft601_wr_data_s);
+        arbiter_i => loopback_tx_out,
+        arbiter_o => loopback_tx_in);
 
 user_led_ld1 <= tlp_streamer_reset_s;
 

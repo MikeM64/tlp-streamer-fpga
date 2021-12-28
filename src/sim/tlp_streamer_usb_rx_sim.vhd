@@ -162,7 +162,7 @@ wait for 100ns;
 --assert test_ft601_rd_n = '1' report "The core has not de-asserted RD_N, 1 cycle after RXF_N" severity failure;
 test_ft601_txe_n <= '0';
 
-wait for 110ns;
+wait for 210ns;
 test_ft601_txe_n <= '1';
 wait for 50ns;
 
