@@ -28,7 +28,7 @@ end entity tlp_streamer_rx_dispatch;
 
 architecture RTL of tlp_streamer_rx_dispatch is
 
-type dispatch_state is (DISPATCH_IDLE, DISPATCH_PARSE_HEADER,
+type dispatch_state is (DISPATCH_IDLE, DISPATCH_AWAIT_HEADER, DISPATCH_WRITE_HEADER,
                         DISPATCH_WRITE_PACKET, DISPATCH_COMPLETE);
 
 signal current_dispatch_state_s, next_dispatch_state_s: dispatch_state;
@@ -64,20 +64,16 @@ begin
         dispatch_o_arr(dispatch_output_queue).dispatch_wr_en <= dispatch_wr_en_s;
 
         case next_dispatch_state_s is
-            when DISPATCH_IDLE =>
-                dispatch_output_queue <= 0;
-            when DISPATCH_PARSE_HEADER =>
-                if (dispatch_rd_valid_s = '1') then
-                    -- tsh_msg_type
-                    dispatch_output_queue <= to_integer(unsigned(dispatch_data_s(7 downto 0)));
-                    -- tsh_msg_len
-                    -- -1 as this first dword is already being written to the destination.
-                    dispatch_words_to_write <= to_integer(unsigned(dispatch_data_s(31 downto 16))) - 1;
-                end if;
+            when DISPATCH_WRITE_HEADER =>
+                -- tsh_msg_type
+                dispatch_output_queue <= to_integer(unsigned(dispatch_data_s(7 downto 0)));
+                -- tsh_msg_len
+                -- -1 as this first dword is already being written to the destination.
+                dispatch_words_to_write <= to_integer(unsigned(dispatch_data_s(31 downto 16))) - 1;
             when DISPATCH_WRITE_PACKET =>
                 dispatch_output_queue <= dispatch_output_queue;
                 dispatch_words_to_write <= dispatch_words_to_write - 1;
-            when DISPATCH_COMPLETE =>
+            when others =>
                 dispatch_output_queue <= 0;
         end case;
     end if;
@@ -91,7 +87,10 @@ begin
 
     case current_dispatch_state_s is
         when DISPATCH_IDLE =>
-        when DISPATCH_PARSE_HEADER =>
+        when DISPATCH_AWAIT_HEADER =>
+            dispatch_rd_en_s <= '1';
+            dispatch_wr_en_s <= dispatch_rd_valid_s;
+        when DISPATCH_WRITE_HEADER =>
             -- Now that the header is available, it can be written-through to the
             -- output component
             dispatch_rd_en_s <= '1';
@@ -114,13 +113,15 @@ begin
     case current_dispatch_state_s is
         when DISPATCH_IDLE =>
             if (dispatch_rd_empty_s = '0') then
-                next_dispatch_state_s <= DISPATCH_PARSE_HEADER;
+                next_dispatch_state_s <= DISPATCH_AWAIT_HEADER;
             end if;
-        when DISPATCH_PARSE_HEADER =>
+        when DISPATCH_AWAIT_HEADER =>
             -- Wait for valid data to appear before continuing
             if (dispatch_rd_valid_s = '1') then
-                next_dispatch_state_s <= DISPATCH_WRITE_PACKET;
+                next_dispatch_state_s <= DISPATCH_WRITE_HEADER;
             end if;
+        when DISPATCH_WRITE_HEADER =>
+            next_dispatch_state_s <= DISPATCH_WRITE_PACKET;
         when DISPATCH_WRITE_PACKET =>
             -- Its possible that a received packet straddles two USB packets
             -- Trust the count in the packet for how many words to transfer
