@@ -13,12 +13,12 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="945000fs"></ZoomStartTime>
-      <ZoomEndTime time="1127201fs"></ZoomEndTime>
-      <Cursor1Time time="1025400fs"></Cursor1Time>
+      <ZoomStartTime time="910590fs"></ZoomStartTime>
+      <ZoomEndTime time="1091591fs"></ZoomEndTime>
+      <Cursor1Time time="1500000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="143"></NameColumnWidth>
+      <NameColumnWidth column_width="135"></NameColumnWidth>
       <ValueColumnWidth column_width="59"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="12" />
@@ -124,7 +124,6 @@
    <wvobject type="group" fp_name="group239">
       <obj_property name="label">TX FIFO</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_ft601/fifo_tx_rd_data_s">
          <obj_property name="ElementShortName">fifo_tx_rd_data_s[35:0]</obj_property>
          <obj_property name="ObjectShortName">fifo_tx_rd_data_s[35:0]</obj_property>
@@ -169,6 +168,7 @@
    <wvobject type="group" fp_name="group67">
       <obj_property name="label">RX Dispatch</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/fifo_rd_data_i">
          <obj_property name="ElementShortName">fifo_rd_data_i[35:0]</obj_property>
          <obj_property name="ObjectShortName">fifo_rd_data_i[35:0]</obj_property>
@@ -193,27 +193,49 @@
          <obj_property name="ElementShortName">next_dispatch_state_s</obj_property>
          <obj_property name="ObjectShortName">next_dispatch_state_s</obj_property>
       </wvobject>
+      <wvobject type="other" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_output_queue">
+         <obj_property name="ElementShortName">dispatch_output_queue</obj_property>
+         <obj_property name="ObjectShortName">dispatch_output_queue</obj_property>
+      </wvobject>
       <wvobject type="other" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_words_to_write">
          <obj_property name="ElementShortName">dispatch_words_to_write</obj_property>
          <obj_property name="ObjectShortName">dispatch_words_to_write</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_rd_empty_s">
-         <obj_property name="ElementShortName">dispatch_rd_empty_s</obj_property>
-         <obj_property name="ObjectShortName">dispatch_rd_empty_s</obj_property>
+      <wvobject type="other" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/next_dispatch_words_to_write">
+         <obj_property name="ElementShortName">next_dispatch_words_to_write</obj_property>
+         <obj_property name="ObjectShortName">next_dispatch_words_to_write</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_rd_valid_s">
-         <obj_property name="ElementShortName">dispatch_rd_valid_s</obj_property>
-         <obj_property name="ObjectShortName">dispatch_rd_valid_s</obj_property>
+      <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_data_s_1">
+         <obj_property name="ElementShortName">dispatch_data_s_1[35:0]</obj_property>
+         <obj_property name="ObjectShortName">dispatch_data_s_1[35:0]</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_data_s">
-         <obj_property name="ElementShortName">dispatch_data_s[35:0]</obj_property>
-         <obj_property name="ObjectShortName">dispatch_data_s[35:0]</obj_property>
+      <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_data_s_2">
+         <obj_property name="ElementShortName">dispatch_data_s_2[35:0]</obj_property>
+         <obj_property name="ObjectShortName">dispatch_data_s_2[35:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_o_arr">
+         <obj_property name="ElementShortName">dispatch_o_arr[1:0]</obj_property>
+         <obj_property name="ObjectShortName">dispatch_o_arr[1:0]</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_o_arr[1]">
+            <obj_property name="ElementShortName">[1]</obj_property>
+            <obj_property name="ObjectShortName">[1]</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_o_arr[0]">
+            <obj_property name="ElementShortName">[0]</obj_property>
+            <obj_property name="ObjectShortName">[0]</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_rx_dispatch/dispatch_i_arr">
+         <obj_property name="ElementShortName">dispatch_i_arr[1:0]</obj_property>
+         <obj_property name="ObjectShortName">dispatch_i_arr[1:0]</obj_property>
       </wvobject>
    </wvobject>
    <wvobject type="group" fp_name="group332">
       <obj_property name="label">TX Arbiter</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="other" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_tx_arbiter/current_arbiter_state_s">
          <obj_property name="ElementShortName">current_arbiter_state_s</obj_property>
          <obj_property name="ObjectShortName">current_arbiter_state_s</obj_property>
@@ -225,10 +247,6 @@
       <wvobject type="other" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_tx_arbiter/arbiter_words_to_write">
          <obj_property name="ElementShortName">arbiter_words_to_write</obj_property>
          <obj_property name="ObjectShortName">arbiter_words_to_write</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_tx_arbiter/valid_input_found_s">
-         <obj_property name="ElementShortName">valid_input_found_s</obj_property>
-         <obj_property name="ObjectShortName">valid_input_found_s</obj_property>
       </wvobject>
       <wvobject type="other" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_tx_arbiter/arbiter_input_queue">
          <obj_property name="ElementShortName">arbiter_input_queue</obj_property>
@@ -265,11 +283,6 @@
       <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_tx_arbiter/arbiter_i_arr">
          <obj_property name="ElementShortName">arbiter_i_arr[0:0]</obj_property>
          <obj_property name="ObjectShortName">arbiter_i_arr[0:0]</obj_property>
-         <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_tx_arbiter/arbiter_i_arr[0]">
-            <obj_property name="ElementShortName">[0]</obj_property>
-            <obj_property name="ObjectShortName">[0]</obj_property>
-            <obj_property name="isExpanded"></obj_property>
-         </wvobject>
       </wvobject>
       <wvobject type="array" fp_name="/tlp_usb_rx_sim/UUT/comp_tlp_streamer_tx_arbiter/arbiter_o_arr">
          <obj_property name="ElementShortName">arbiter_o_arr[0:0]</obj_property>

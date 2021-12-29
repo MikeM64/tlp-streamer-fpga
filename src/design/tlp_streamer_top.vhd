@@ -199,7 +199,7 @@ comp_tlp_streamer_pcie: tlp_streamer_pcie
         pcie_cfg_arbiter_o => pcie_cfg_tx_arbiter_in);
 
 comp_tlp_streamer_rx_dispatch: tlp_streamer_rx_dispatch
-    generic map (NUM_OUTPUT_QUEUES => 1)
+    generic map (NUM_OUTPUT_QUEUES => 2)
     port map(
          sys_clk_i => sys_clk,
          sys_reset_i => tlp_streamer_reset_s,
@@ -211,9 +211,9 @@ comp_tlp_streamer_rx_dispatch: tlp_streamer_rx_dispatch
          -- Output Components
          -- These MUST correspond to tsh_msg_type_et.
          dispatch_o_arr(0) => loopback_queue_out,
-         --dispatch_o_arr(1) => pcie_cfg_rx_dispatch_out,
-         dispatch_i_arr(0) => loopback_queue_in);
-         --dispatch_i_arr(1) => pcie_cfg_rx_dispatch_in);
+         dispatch_o_arr(1) => pcie_cfg_rx_dispatch_out,
+         dispatch_i_arr(0) => loopback_queue_in,
+         dispatch_i_arr(1) => pcie_cfg_rx_dispatch_in);
 
 comp_tlp_streamer_tx_arbiter: tlp_streamer_tx_arbiter
     generic map (NUM_INPUT_QUEUES => 1)

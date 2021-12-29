@@ -28,20 +28,24 @@ end entity tlp_streamer_rx_dispatch;
 
 architecture RTL of tlp_streamer_rx_dispatch is
 
-type dispatch_state is (DISPATCH_IDLE, DISPATCH_AWAIT_HEADER, DISPATCH_WRITE_HEADER,
-                        DISPATCH_WRITE_PACKET, DISPATCH_COMPLETE);
+type dispatch_state is (DISPATCH_IDLE, DISPATCH_AWAIT_HEADER, DISPATCH_READ_HEADER,
+                        DISPATCH_WRITE_HEADER, DISPATCH_WRITE_PACKET, DISPATCH_COMPLETE);
 
 signal current_dispatch_state_s, next_dispatch_state_s: dispatch_state;
-signal dispatch_words_to_write: integer range 0 to 65535;
-signal dispatch_output_queue: integer range 0 to 255;
+signal dispatch_words_to_write, next_dispatch_words_to_write: integer range 0 to 65535;
+signal dispatch_output_queue, next_dispatch_output_queue: integer range 0 to 255;
 
-signal dispatch_rd_en_s, dispatch_rd_empty_s, dispatch_rd_valid_s, dispatch_wr_en_s: std_logic;
-signal dispatch_data_s: std_logic_vector(35 downto 0);
+-- A two-cycle delay for output data is required in order to first parse the
+-- packet header (which denotes the appropriate output queue) and then
+-- to continue writing the data to the output queue after it has been clocked
+signal dispatch_rd_en_s, dispatch_rd_empty_s, dispatch_rd_valid_s_1, dispatch_rd_valid_s_2, dispatch_wr_en_s: std_logic;
+signal dispatch_data_s_1, dispatch_data_s_2: std_logic_vector(35 downto 0);
 
 begin
 
-dispatch_fsm_state_process: process(sys_clk_i, next_dispatch_state_s, sys_reset_i, dispatch_data_s,
-                                    dispatch_rd_valid_s, dispatch_rd_empty_s, dispatch_wr_en_s)
+dispatch_fsm_state_process: process(sys_clk_i, next_dispatch_state_s, sys_reset_i, dispatch_data_s_1,
+                                    dispatch_rd_valid_s_1, dispatch_rd_empty_s, dispatch_wr_en_s,
+                                    dispatch_data_s_2, dispatch_rd_valid_s_2)
 begin
     if (sys_reset_i = '1') then
         current_dispatch_state_s <= DISPATCH_IDLE;
@@ -53,58 +57,79 @@ begin
         end loop;
     elsif (rising_edge(sys_clk_i)) then
         current_dispatch_state_s <= next_dispatch_state_s;
-        fifo_rd_en_o <= dispatch_rd_en_s;
+
+        dispatch_output_queue <= next_dispatch_output_queue;
+        dispatch_words_to_write <= next_dispatch_words_to_write;
+
         dispatch_rd_empty_s <= fifo_rd_empty_i;
-        dispatch_rd_valid_s <= fifo_rd_valid_i;
-        dispatch_data_s <= fifo_rd_data_i;
+        dispatch_rd_valid_s_1 <= fifo_rd_valid_i;
+        dispatch_data_s_1 <= fifo_rd_data_i;
 
-        dispatch_o_arr(dispatch_output_queue).dispatch_wr_data <= dispatch_data_s;
-        dispatch_o_arr(dispatch_output_queue).dispatch_valid <= dispatch_rd_valid_s;
-        dispatch_o_arr(dispatch_output_queue).dispatch_empty <= dispatch_rd_empty_s;
-        dispatch_o_arr(dispatch_output_queue).dispatch_wr_en <= dispatch_wr_en_s;
+        dispatch_data_s_2 <= dispatch_data_s_1;
+        dispatch_rd_valid_s_2 <= dispatch_rd_valid_s_1;
 
-        case next_dispatch_state_s is
-            when DISPATCH_WRITE_HEADER =>
-                -- tsh_msg_type
-                dispatch_output_queue <= to_integer(unsigned(dispatch_data_s(7 downto 0)));
-                -- tsh_msg_len
-                -- -1 as this first dword is already being written to the destination.
-                dispatch_words_to_write <= to_integer(unsigned(dispatch_data_s(31 downto 16))) - 1;
-            when DISPATCH_WRITE_PACKET =>
-                dispatch_output_queue <= dispatch_output_queue;
-                dispatch_words_to_write <= dispatch_words_to_write - 1;
-            when others =>
-                dispatch_output_queue <= 0;
-        end case;
+        fifo_rd_en_o <= dispatch_rd_en_s;
+
+        for i in 0 to NUM_OUTPUT_QUEUES-1 loop
+            if (i = next_dispatch_output_queue) then
+                dispatch_o_arr(i).dispatch_wr_data <= dispatch_data_s_2;
+                dispatch_o_arr(i).dispatch_valid <= dispatch_rd_valid_s_2;
+                dispatch_o_arr(i).dispatch_empty <= dispatch_rd_empty_s;
+                dispatch_o_arr(i).dispatch_wr_en <= dispatch_wr_en_s;
+            else
+                -- Only the selected output will receive valid data.
+                -- All other outputs will receive placeholder data.
+                dispatch_o_arr(i).dispatch_wr_data <= (others => '0');
+                dispatch_o_arr(i).dispatch_valid <= '0';
+                dispatch_o_arr(i).dispatch_empty <= '1';
+                dispatch_o_arr(i).dispatch_wr_en <= '0';
+            end if;
+        end loop;
     end if;
 
 end process dispatch_fsm_state_process;
 
-dispatch_fsm_data_output_process: process(current_dispatch_state_s, dispatch_output_queue, dispatch_rd_valid_s)
+dispatch_fsm_data_output_process: process(current_dispatch_state_s, dispatch_output_queue, dispatch_rd_valid_s_2,
+                                          dispatch_data_s_2, dispatch_words_to_write)
 begin
     dispatch_rd_en_s <= '0';
     dispatch_wr_en_s <= '0';
+    next_dispatch_output_queue <= dispatch_output_queue;
+    next_dispatch_words_to_write <= dispatch_words_to_write - 1;
 
     case current_dispatch_state_s is
         when DISPATCH_IDLE =>
+            next_dispatch_output_queue <= 0;
+            next_dispatch_words_to_write <= 0;
         when DISPATCH_AWAIT_HEADER =>
             dispatch_rd_en_s <= '1';
-            dispatch_wr_en_s <= dispatch_rd_valid_s;
+            next_dispatch_words_to_write <= 0;
+        when DISPATCH_READ_HEADER =>
+            dispatch_rd_en_s <= '1';
+            -- Write signal started one cycle before the header write to align
+            -- when the data is available on the output queue
+            dispatch_wr_en_s <= '1';
+            -- tsh_msg_type
+            next_dispatch_output_queue <= to_integer(unsigned(dispatch_data_s_2(7 downto 0)));
+            -- tsh_msg_len
+            -- -1 as this first dword is already being written to the destination.
+            next_dispatch_words_to_write <= to_integer(unsigned(dispatch_data_s_2(31 downto 16))) - 1;
         when DISPATCH_WRITE_HEADER =>
             -- Now that the header is available, it can be written-through to the
             -- output component
             dispatch_rd_en_s <= '1';
-            dispatch_wr_en_s <= dispatch_rd_valid_s;
+            dispatch_wr_en_s <= '1';
         when DISPATCH_WRITE_PACKET =>
             dispatch_rd_en_s <= '1';
-            dispatch_wr_en_s <= dispatch_rd_valid_s;
+            dispatch_wr_en_s <= dispatch_rd_valid_s_2;
         when DISPATCH_COMPLETE =>
+            next_dispatch_words_to_write <= 0;
     end case;
 
 end process dispatch_fsm_data_output_process;
 
 dispatch_fsm_state_select_process: process(current_dispatch_state_s, dispatch_rd_empty_s, dispatch_words_to_write,
-                                           dispatch_rd_valid_s)
+                                           dispatch_rd_valid_s_1)
 begin
 
     -- Current state does not change by default
@@ -117,9 +142,11 @@ begin
             end if;
         when DISPATCH_AWAIT_HEADER =>
             -- Wait for valid data to appear before continuing
-            if (dispatch_rd_valid_s = '1') then
-                next_dispatch_state_s <= DISPATCH_WRITE_HEADER;
+            if (dispatch_rd_valid_s_1 = '1') then
+                next_dispatch_state_s <= DISPATCH_READ_HEADER;
             end if;
+        when DISPATCH_READ_HEADER =>
+            next_dispatch_state_s <= DISPATCH_WRITE_HEADER;
         when DISPATCH_WRITE_HEADER =>
             next_dispatch_state_s <= DISPATCH_WRITE_PACKET;
         when DISPATCH_WRITE_PACKET =>

@@ -40,6 +40,8 @@ cfg_clk_s <= sys_clk_i;
 cfg_mgmt_do <= pcie_cfg_mgmt_producer_i.cfg_mgmt_do;
 cfg_mgmt_rd_wr_done <= pcie_cfg_mgmt_producer_i.cfg_mgmt_rd_wr_done;
 
+dispatch_o.dispatch_wr_full <= '0';
+
 pcie_cfg_mgmt_consumer_o.cfg_mgmt_di <= (others => '0');
 pcie_cfg_mgmt_consumer_o.cfg_mgmt_byte_en <= (others => '0');
 pcie_cfg_mgmt_consumer_o.cfg_mgmt_dwaddr <= (others => '0');
