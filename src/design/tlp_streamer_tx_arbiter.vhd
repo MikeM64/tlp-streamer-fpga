@@ -91,7 +91,7 @@ begin
 end process arbiter_fsm_state_process;
 
 arbiter_fsm_data_output_process: process(current_arbiter_state_s, arbiter_i_arr, arbiter_input_queue,
-                                         arbiter_words_to_write, arbiter_rd_valid_s_2, arbiter_rd_data_s_2)
+                                         arbiter_words_to_write, arbiter_rd_valid_s_2, arbiter_rd_data_s_3)
 begin
 
     arbiter_rd_en_s <= '0';
