@@ -27,7 +27,7 @@ end entity tlp_streamer_tx_arbiter;
 architecture RTL of tlp_streamer_tx_arbiter is
 
 type arbiter_state is (ARBITER_IDLE, ARBITER_AWAIT_HEADER, ARBITER_READ_HEADER,
-                       ARBITER_WRITE_PACKET, ARBITER_COMPLETE);
+                       ARBITER_WRITE_PACKET, ARBITER_COMPLETE_1, ARBITER_COMPLETE_2);
 
 signal current_arbiter_state_s, next_arbiter_state_s: arbiter_state;
 signal arbiter_words_to_write, next_arbiter_words_to_write: integer range 0 to 65535;
@@ -104,8 +104,6 @@ begin
             for i in 0 to NUM_INPUT_QUEUES-1 loop
                 if (arbiter_i_arr(i).arbiter_rd_empty = '0') then
                     next_arbiter_input_queue <= i;
-                else
-                    next_arbiter_input_queue <= NUM_INPUT_QUEUES;
                 end if;
                 exit when arbiter_i_arr(i).arbiter_rd_empty = '0';
             end loop;
@@ -125,11 +123,13 @@ begin
                 arbiter_rd_en_s <= '0';
             end if;
             arbiter_wr_en_s <= arbiter_rd_valid_s_2;
-        when ARBITER_COMPLETE =>
+        when ARBITER_COMPLETE_1 =>
             next_arbiter_words_to_write <= 0;
-            -- next_arbiter_input_queue is updated in ARBITER_IDLE
-            -- to allow for the rd_en signal to be de-asserted for the
-            -- selected input
+        when ARBITER_COMPLETE_2 =>
+            -- A second complete state is used to allow for the rd_en
+            -- signal to be de-asserted for the selected input before
+            -- resetting the input queue for the next TX packet
+            next_arbiter_input_queue <= NUM_INPUT_QUEUES;
     end case;
 
 end process arbiter_fsm_data_output_process;
@@ -157,9 +157,11 @@ begin
             next_arbiter_state_s <= ARBITER_WRITE_PACKET;
         when ARBITER_WRITE_PACKET =>
             if (arbiter_words_to_write = 0) then
-                next_arbiter_state_s <= ARBITER_COMPLETE;
+                next_arbiter_state_s <= ARBITER_COMPLETE_1;
             end if;
-        when ARBITER_COMPLETE =>
+        when ARBITER_COMPLETE_1 =>
+            next_arbiter_state_s <= ARBITER_COMPLETE_2;
+        when ARBITER_COMPLETE_2 =>
             next_arbiter_state_s <= ARBITER_IDLE;
     end case;
 
