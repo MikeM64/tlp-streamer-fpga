@@ -50,4 +50,19 @@ end record arbiter_consumer_r;
 type arbiter_producer_r_array is array (integer range <>) of arbiter_producer_r;
 type arbiter_consumer_r_array is array (integer range <>) of arbiter_consumer_r;
 
+type pcie_cfg_mgmt_port_producer_r is record
+        cfg_mgmt_do : STD_LOGIC_VECTOR(31 DOWNTO 0);
+        cfg_mgmt_rd_wr_done : STD_LOGIC;
+end record pcie_cfg_mgmt_port_producer_r;
+
+type pcie_cfg_mgmt_port_consumer_r is record
+        cfg_mgmt_di : STD_LOGIC_VECTOR(31 DOWNTO 0);
+        cfg_mgmt_byte_en : STD_LOGIC_VECTOR(3 DOWNTO 0);
+        cfg_mgmt_dwaddr : STD_LOGIC_VECTOR(9 DOWNTO 0);
+        cfg_mgmt_wr_en : STD_LOGIC;
+        cfg_mgmt_rd_en : STD_LOGIC;
+        cfg_mgmt_wr_readonly : STD_LOGIC;
+        cfg_mgmt_wr_rw1c_as_rw : STD_LOGIC;
+end record pcie_cfg_mgmt_port_consumer_r;
+
 end package tlp_streamer_records;

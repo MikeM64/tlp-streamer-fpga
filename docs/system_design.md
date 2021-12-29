@@ -21,6 +21,18 @@ Client could be any PCIe emulator:
   - MAY be hot-restart capable to change VID/PID/device class from the client software (dependent on FPGA support)
 
 ## Design
+### Clock Domains
+There are three clock domains for the design logic (except for the internals of Xilinx IP):
+1) ft601_clk
+  - This clock is driven by the FT601 and is used to clock incoming/outgoing data towards the host
+  - Drives the RX/TX FIFOs
+2) sys_clk
+  - This is the external 100MHz clock
+  - Drives the majority of the internal logic
+3) pcie_user_clk
+  - User clock output from the PCIe IP
+  - Used to clock all data reads/writes related to the PCIe IP
+
 ### USB to FPGA Design
 The FT601 supports both synchronous single-channel and multi-channel operation. Maximum of 8 channels - 4 IN and 4 OUT.
 

@@ -11,9 +11,12 @@ use IEEE.numeric_std.all;
 library UNISIM;
 use UNISIM.vcomponents.all;
 
+use work.tlp_streamer_records.all;
+
 entity tlp_streamer_pcie is
     port (
         user_led_ld2 : out std_logic;
+        sys_clk_i : in std_logic;
         sys_reset_i : in std_logic;
         pcie_clk_p_i  : in std_logic;
         pcie_clk_n_i  : in std_logic;
@@ -25,7 +28,12 @@ entity tlp_streamer_pcie is
         pcie_rxn_i    : in std_logic_vector(0 downto 0);
         --pcie_usr_clk_o : out std_logic;
         --pcie_usr_rst_o : out std_logic;
-        pcie_usr_link_up_o : out std_logic);
+        pcie_usr_link_up_o : out std_logic;
+        -- Host Packet RX/TX management
+        pcie_cfg_dispatch_i : in dispatch_producer_r;
+        pcie_cfg_dispatch_o : out dispatch_consumer_r;
+        pcie_cfg_arbiter_i : in arbiter_producer_r;
+        pcie_cfg_arbiter_o : out arbiter_consumer_r);
         --pcie_usr_app_rdy : out std_logic;
         --pcie_s_axi_tx_tready_o : out std_logic;
         --pcie_s_axi_tx_tdata_i : in std_logic_vector(63 downto 0);
@@ -65,6 +73,16 @@ component pcie_7x_0 IS
     m_axis_rx_tvalid : OUT STD_LOGIC;
     m_axis_rx_tready : IN STD_LOGIC;
     m_axis_rx_tuser : OUT STD_LOGIC_VECTOR(21 DOWNTO 0);
+    -- PCIe configuration management port
+    cfg_mgmt_do : OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+    cfg_mgmt_rd_wr_done : OUT STD_LOGIC;
+    cfg_mgmt_di : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+    cfg_mgmt_byte_en : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
+    cfg_mgmt_dwaddr : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+    cfg_mgmt_wr_en : IN STD_LOGIC;
+    cfg_mgmt_rd_en : IN STD_LOGIC;
+    cfg_mgmt_wr_readonly : IN STD_LOGIC;
+    cfg_mgmt_wr_rw1c_as_rw : IN STD_LOGIC;
     cfg_interrupt : IN STD_LOGIC;
     cfg_interrupt_rdy : OUT STD_LOGIC;
     cfg_interrupt_assert : IN STD_LOGIC;
@@ -100,6 +118,23 @@ component pcie_7x_0 IS
     sys_rst_n : IN STD_LOGIC
   );
 END component pcie_7x_0;
+
+component tlp_streamer_pcie_cfg is
+    port (
+        sys_clk_i   : in std_logic;
+        pcie_clk_i  : in std_logic;
+        sys_reset_i : in std_logic;
+        -- PCIe Configuration Port from PCIe IP
+        pcie_cfg_mgmt_producer_i : in pcie_cfg_mgmt_port_producer_r;
+        pcie_cfg_mgmt_consumer_o : out pcie_cfg_mgmt_port_consumer_r;
+        -- Input Requests from the host to handle
+        dispatch_i : in dispatch_producer_r;
+        dispatch_o : out dispatch_consumer_r;
+        -- Output Packets towards the host
+        arbiter_i : in arbiter_producer_r;
+        arbiter_o : out arbiter_consumer_r);
+end component tlp_streamer_pcie_cfg;
+
 
 component pcie_ila IS
 PORT (
@@ -158,6 +193,10 @@ signal pl_tx_pm_state_s, pl_initial_link_width_s: std_logic_vector(2 downto 0) :
 
 signal pcie_clk_blink_64_s: unsigned(63 downto 0) := (others => '0');
 
+-- Configuration management interface
+signal pcie_cfg_mgmt_producer_s: pcie_cfg_mgmt_port_producer_r;
+signal pcie_cfg_mgmt_consumer_s: pcie_cfg_mgmt_port_consumer_r;
+
 begin
 
 -- Refer to https://www.xilinx.com/support/documentation/user_guides/ug482_7Series_GTP_Transceivers.pdf
@@ -175,6 +214,21 @@ ibufds_gte2_pcie_clk : IBUFDS_GTE2
         I => pcie_clk_p_i,
         IB => pcie_clk_n_i
 );
+
+comp_tlp_streamer_pcie_cfg: tlp_streamer_pcie_cfg
+    port map (
+        sys_clk_i => sys_clk_i,
+        pcie_clk_i => user_clk_s,
+        sys_reset_i => sys_reset_i,
+        -- PCIe Configuration Port from PCIe IP
+        pcie_cfg_mgmt_producer_i => pcie_cfg_mgmt_producer_s,
+        pcie_cfg_mgmt_consumer_o => pcie_cfg_mgmt_consumer_s,
+        -- Input Requests from the host to handle
+        dispatch_i => pcie_cfg_dispatch_i,
+        dispatch_o => pcie_cfg_dispatch_o,
+        -- Output Packets towards the host
+        arbiter_i => pcie_cfg_arbiter_i,
+        arbiter_o => pcie_cfg_arbiter_o);
 
 comp_pcie_7x_0: pcie_7x_0
     port map(
@@ -198,6 +252,16 @@ comp_pcie_7x_0: pcie_7x_0
         m_axis_rx_tvalid => m_axis_rx_tvalid_s,
         m_axis_rx_tready => m_axis_rx_tready_s,
         m_axis_rx_tuser => m_axis_rx_tuser_s,
+        -- Configuration space management port
+        cfg_mgmt_do => pcie_cfg_mgmt_producer_s.cfg_mgmt_do,
+        cfg_mgmt_rd_wr_done => pcie_cfg_mgmt_producer_s.cfg_mgmt_rd_wr_done,
+        cfg_mgmt_di => pcie_cfg_mgmt_consumer_s.cfg_mgmt_di,
+        cfg_mgmt_byte_en => pcie_cfg_mgmt_consumer_s.cfg_mgmt_byte_en,
+        cfg_mgmt_dwaddr => pcie_cfg_mgmt_consumer_s.cfg_mgmt_dwaddr,
+        cfg_mgmt_wr_en => pcie_cfg_mgmt_consumer_s.cfg_mgmt_wr_en,
+        cfg_mgmt_rd_en => pcie_cfg_mgmt_consumer_s.cfg_mgmt_rd_en,
+        cfg_mgmt_wr_readonly => pcie_cfg_mgmt_consumer_s.cfg_mgmt_wr_readonly,
+        cfg_mgmt_wr_rw1c_as_rw => pcie_cfg_mgmt_consumer_s.cfg_mgmt_wr_rw1c_as_rw,
         cfg_interrupt => cfg_interrupt_s,
         cfg_interrupt_rdy => cfg_interrupt_rdy_s,
         cfg_interrupt_assert => cfg_interrupt_assert_s,
