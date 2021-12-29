@@ -216,15 +216,15 @@ comp_tlp_streamer_rx_dispatch: tlp_streamer_rx_dispatch
          dispatch_i_arr(1) => pcie_cfg_rx_dispatch_in);
 
 comp_tlp_streamer_tx_arbiter: tlp_streamer_tx_arbiter
-    generic map (NUM_INPUT_QUEUES => 1)
+    generic map (NUM_INPUT_QUEUES => 2)
     port map (
         sys_clk_i => sys_clk,
         sys_reset_i => tlp_streamer_reset_s,
         -- Input FIFOs to arbitrate
         arbiter_o_arr(0) => loopback_tx_out,
-        --arbiter_o_arr(1) => pcie_cfg_tx_arbiter_out,
+        arbiter_o_arr(1) => pcie_cfg_tx_arbiter_out,
         arbiter_i_arr(0) => loopback_tx_in,
-        --arbiter_i_arr(1) => pcie_cfg_tx_arbiter_in,
+        arbiter_i_arr(1) => pcie_cfg_tx_arbiter_in,
         -- Output FIFO to feed
         arbiter_output_wr_en_o => ft601_tx_wr_en_s,
         arbiter_output_wr_full_i => ft601_wr_full_s,

@@ -45,7 +45,7 @@ begin
 
 dispatch_fsm_state_process: process(sys_clk_i, next_dispatch_state_s, sys_reset_i, dispatch_data_s_1,
                                     dispatch_rd_valid_s_1, dispatch_rd_empty_s, dispatch_wr_en_s,
-                                    dispatch_data_s_2, dispatch_rd_valid_s_2)
+                                    dispatch_data_s_2)
 begin
     if (sys_reset_i = '1') then
         current_dispatch_state_s <= DISPATCH_IDLE;
@@ -113,7 +113,7 @@ begin
             next_dispatch_output_queue <= to_integer(unsigned(dispatch_data_s_2(7 downto 0)));
             -- tsh_msg_len
             -- -1 as this first dword is already being written to the destination.
-            next_dispatch_words_to_write <= to_integer(unsigned(dispatch_data_s_2(31 downto 16))) - 1;
+            next_dispatch_words_to_write <= to_integer(unsigned(dispatch_data_s_2(31 downto 16)));
         when DISPATCH_WRITE_HEADER =>
             -- Now that the header is available, it can be written-through to the
             -- output component
