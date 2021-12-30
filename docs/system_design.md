@@ -119,6 +119,8 @@ struct tlp_streamer_header {
     uint16_t  tsh_msg_len;
     /** Host-defined sequence number, for debugging */
     uint16_t  tsh_seq_num;
+    /** Padding */
+    uint8_t   tsh_reserved_2[2];
 } __attribute__((packed));
 ```
 
@@ -140,14 +142,15 @@ The following structure is used to contain configuration space requests from the
 
 ```
 struct tlp_streamer_pcie_cfg_cmd {
-    /** Configuration register to read from, see page 109+ from pg054. */
+    /**
+     * Configuration register to read from, see page 109+ from pg054.
+     * Only 10 bits are used.
+     */
     uint16_t tspcc_cfg_reg_addr;
     /** Read vs. write */
     uint8_t  tspcc_cfg_write;
-    /** Which bytes are valid during a cfg_reg write */
+    /** Which bytes are valid during a cfg_reg write. 4-bits used. */
     uint8_t  tspcc_cfg_reg_be;
-    /** uint32_t padding alignment */
-    uint8_t  tspcc_padding;
     /** Data returned from the register, or data to write to the register */
     uint32_t tspcc_cfg_reg_data;
 };

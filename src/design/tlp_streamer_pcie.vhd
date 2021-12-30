@@ -135,30 +135,6 @@ component tlp_streamer_pcie_cfg is
         arbiter_o : out arbiter_consumer_r);
 end component tlp_streamer_pcie_cfg;
 
-
-component pcie_ila IS
-PORT (
-    clk : IN STD_LOGIC;
-    probe0 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe1 : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
-    probe2 : IN STD_LOGIC_VECTOR(5 DOWNTO 0);
-    probe3 : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
-    probe4 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe5 : IN STD_LOGIC_VECTOR(2 DOWNTO 0);
-    probe6 : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
-    probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe8 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe9 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe10 : IN STD_LOGIC_VECTOR(2 DOWNTO 0);
-    probe11 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe12 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe13 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe14 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe15 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    probe16 : IN STD_LOGIC_VECTOR(0 DOWNTO 0)
-);
-END component pcie_ila;
-
 signal pcie_rst_n_s: std_logic;
 signal pcie_clk_s: std_logic;
 
@@ -219,7 +195,7 @@ comp_tlp_streamer_pcie_cfg: tlp_streamer_pcie_cfg
     port map (
         sys_clk_i => sys_clk_i,
         pcie_clk_i => user_clk_s,
-        sys_reset_i => sys_reset_i,
+        sys_reset_i => user_reset_s,
         -- PCIe Configuration Port from PCIe IP
         pcie_cfg_mgmt_producer_i => pcie_cfg_mgmt_producer_s,
         pcie_cfg_mgmt_consumer_o => pcie_cfg_mgmt_consumer_s,
@@ -297,31 +273,14 @@ comp_pcie_7x_0: pcie_7x_0
         sys_rst_n => pcie_rst_n_s
   );
 
-comp_pcie_ila: pcie_ila
-    port map(
-        clk => user_clk_s,
-        probe0(0) => pl_sel_lnk_rate_s,
-        probe1 => pl_sel_lnk_width_s,
-        probe2 => pl_ltssm_state_s,
-        probe3 => pl_lane_reversal_mode_s,
-        probe4(0) => pl_phy_lnk_up_s,
-        probe5 => pl_tx_pm_state_s,
-        probe6 => pl_rx_pm_state_s,
-        probe7(0) => pl_link_upcfg_cap_s,
-        probe8(0) => pl_link_gen2_cap_s,
-        probe9(0) => pl_link_partner_gen2_supported_s,
-        probe10 => pl_initial_link_width_s,
-        probe11(0) => pcie_rst_n_s,
-        probe12(0) => user_reset_s,
-        probe13(0) => user_lnk_up_s,
-        probe14(0) => user_app_rdy_s,
-        probe15(0) => pcie_perst_n_i,
-        probe16(0) => sys_reset_i
-    );
+pcie_reset_process: process(sys_reset_i, pcie_perst_n_i)
+begin
 
-pcie_wake_n_o <= '1';
-pcie_rst_n_s <= not (sys_reset_i or not pcie_perst_n_i);
-pcie_usr_link_up_o <= user_lnk_up_s;
+    pcie_wake_n_o <= '1';
+    pcie_rst_n_s <= not (sys_reset_i or not pcie_perst_n_i);
+    pcie_usr_link_up_o <= user_lnk_up_s;
+
+end process pcie_reset_process;
 
 blink_debug_process: process(pcie_clk_s, pcie_clk_blink_64_s)
 begin

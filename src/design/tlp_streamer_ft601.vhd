@@ -47,30 +47,6 @@ component fifo_36_36_prim IS
     valid : OUT STD_LOGIC);
 END component fifo_36_36_prim;
 
-component ila_0 IS
-    PORT (
-        clk : IN STD_LOGIC;
-        trig_in : IN STD_LOGIC;
-        trig_in_ack : OUT STD_LOGIC;
-        probe0 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
-        probe1 : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
-        probe2 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe3 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe4 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe6 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe8 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe9 : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
-        probe10 : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
-        probe11 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe12 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe13 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe14 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe15 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
-        probe16 : IN STD_LOGIC_VECTOR(3 DOWNTO 0));
-END component ila_0;
-
 type ft601_bus_state is (BUS_IDLE,
                          RX_READY, RX_START, RX_WORD_1, RX_WORD_2, RX_COMPLETE,
                          TX_READY, TX_WORD, TX_COMPLETE);
@@ -100,10 +76,6 @@ signal fifo_tx_rd_en_s: std_logic;
 signal fifo_tx_rd_empty_s: std_logic;
 signal fifo_tx_rd_valid_s: std_logic;
 
-signal ila_trigger_in_s: std_logic;
-signal ila_trigger_in_ack: std_logic;
-signal ila_current_bus_state_s: std_logic_vector(9 downto 0);
-signal ila_next_bus_state_s: std_logic_vector(9 downto 0);
 signal ft601_rx_fifo_rd_valid_s: std_logic;
 
 begin
@@ -133,29 +105,6 @@ ft601_tx_usb_fifo: fifo_36_36_prim
         full => ft601_tx_fifo_wr_full_o,
         empty => fifo_tx_rd_empty_s,
         valid => fifo_tx_rd_valid_s);
-
-ft601_bus_ila: ila_0
-    port map (
-        clk => ft601_clk_i,
-        trig_in => ila_trigger_in_s,
-        trig_in_ack => ila_trigger_in_ack,
-        probe0 => ft601_data_io,
-        probe1 => ft601_be_io,
-        probe2(0) => ft601_rxf_n_i,
-        probe3(0) => ft601_txe_n_i,
-        probe4(0) => ft601_oe_n_s,
-        probe5(0) => ft601_rd_n_s,
-        probe6(0) => ft601_wr_n_s_2,
-        probe7(0) => fifo_rx_wr_en_s,
-        probe8(0) => ft601_tx_fifo_wr_en_i,
-        probe9 => ila_current_bus_state_s,
-        probe10 => ila_next_bus_state_s,
-        probe11(0) => fifo_rx_wr_full_s,
-        probe12(0) => fifo_tx_rd_empty_s,
-        probe13(0) => fifo_tx_rd_valid_s,
-        probe14(0) => ft601_rx_fifo_rd_valid_s,
-        probe15 => fifo_tx_rd_data_s(31 downto 0),
-        probe16 => fifo_tx_rd_data_s(35 downto 32));
 
 bus_read_write: process(ft601_wr_n_s_2, ft601_be_wr_o, ft601_data_wr_o,
                    ft601_be_io, ft601_data_io)
@@ -203,14 +152,12 @@ end process ft601_clock_process;
 ft601_fsm_state_process: process(ft601_clk_i, next_bus_state, sys_reset_i)
 begin
 
-    ila_next_bus_state_s <= std_logic_vector(to_unsigned(ft601_bus_state'POS(next_bus_state), 10));
     ft601_rst_n_o <= not sys_reset_i;
 
     if (sys_reset_i = '1') then
         current_bus_state <= BUS_IDLE;
     elsif (rising_edge(ft601_clk_i)) then
         current_bus_state <= next_bus_state;
-        ila_current_bus_state_s <= std_logic_vector(to_unsigned(ft601_bus_state'POS(current_bus_state), 10));
     end if;
 
 end process ft601_fsm_state_process;
@@ -225,7 +172,6 @@ begin
     ft601_wr_n_s_1 <= '1';
     fifo_rx_wr_en_s <= '0';
     fifo_tx_rd_en_s <= '0';
-    ila_trigger_in_s <= '0';
 
     case current_bus_state is
         when RX_START =>
