@@ -141,6 +141,29 @@ Per the 7-series FPGA documentation, only PCI config space addresses 0xA8 -> 0xF
 The following structure is used to contain configuration space requests from the host.
 
 ```
+enum tlp_streamer_write_options {
+    /** PCIe config space read */
+    TSWO_READ  = (0 << 0),
+    /** PCIe config space write */
+    TSWO_WRITE = (1 << 0),
+    /**
+     * Write enable to treat any Read Only bit in the current write
+     * as RW, not including bits set by attributes, reserved bits and
+     * status bits.
+     */
+    TSWO_WRITE_READONLY = (1 << 1),
+    /**
+     * Indicates the current write operation should treat any RW1C bit as
+     * RW. Normally a RW1C bit is cleared by writing 1 to it and can normally
+     * only be set by internal core conditions. During a configuration write
+     * with this flag set, for every bit in tspcc_cfg_reg_data that is 1, a
+     * corresponding RW1C configuration register bit is set to 1. A value of
+     * 0 during this operation has no effect and non-RW1C bits are
+     * unaffected regardless of the data in tspcc_cfg_reg_data.
+     */
+    TSWO_WRITE_RW1C = (1 << 2),
+}
+
 struct tlp_streamer_pcie_cfg_cmd {
     /**
      * Configuration register to read from, see page 109+ from pg054.

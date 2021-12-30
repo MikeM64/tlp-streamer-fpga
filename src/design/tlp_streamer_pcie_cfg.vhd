@@ -47,7 +47,7 @@ end component fifo_32_32_bram;
 
 type pcie_cfg_req_state is (PCIE_CFG_IDLE, PCIE_CFG_AWAIT_HEADER, PCIE_CFG_PARSE_HEADER_1,
                             PCIE_CFG_PARSE_HEADER_2, PCIE_CFG_PARSE_CMD_1, PCIE_CFG_PARSE_CMD_2,
-                            PCIE_CFG_READ_1, PCIE_CFG_READ_2,
+                            PCIE_CFG_READ_1, PCIE_CFG_READ_2, PCIE_CFG_WRITE_1, PCIE_CFG_WRITE_2,
                             PCIE_CFG_TX_PACKET_1, PCIE_CFG_TX_PACKET_2, PCIE_CFG_TX_PACKET_3,
                             PCIE_CFG_TX_PACKET_4, PCIE_CFG_COMPLETE);
 
@@ -65,6 +65,8 @@ signal pcie_cfg_fifo_tx_wr_data_s, next_pcie_cfg_fifo_tx_wr_data_s, pcie_cfg_fif
 signal pcie_cfg_req_seq_id_s, next_pcie_cfg_req_seq_id_s: std_logic_vector(15 downto 0);
 signal pcie_cfg_cmd_write_be_s, next_pcie_cfg_cmd_write_be_s: std_logic_vector(3 downto 0);
 signal pcie_cfg_cmd_write_s, next_pcie_cfg_cmd_write_s: std_logic;
+signal pcie_cfg_cmd_write_readonly_s, next_pcie_cfg_cmd_write_readonly_s: std_logic;
+signal pcie_cfg_cmd_write_rw1c_as_rw_s, next_pcie_cfg_cmd_write_rw1c_as_rw_s: std_logic;
 signal pcie_cfg_cmd_addr_s, next_pcie_cfg_cmd_addr_s: std_logic_vector(9 downto 0);
 signal pcie_cfg_cmd_data_s, next_pcie_cfg_cmd_data_s: std_logic_vector(31 downto 0);
 
@@ -105,6 +107,8 @@ begin
 
     pcie_cfg_fifo_rx_wr_en_s <= dispatch_i.dispatch_wr_en and
                                 dispatch_i.dispatch_valid;
+    -- The extra 1's here correspond to the byte_enable portion of the
+    -- data sent to the FT601
     arbiter_o.arbiter_rd_data <= "1111" & pcie_cfg_fifo_tx_rd_data_s;
 
 end process pcie_cfg_rx_tx_async_process;
@@ -112,7 +116,8 @@ end process pcie_cfg_rx_tx_async_process;
 pcie_cfg_fsm_state_process: process(pcie_clk_i, sys_reset_i, next_pcie_cfg_req_state, current_pcie_cfg_req_state,
                                     next_pcie_cfg_req_seq_id_s, next_pcie_cfg_cmd_write_be_s,
                                     next_pcie_cfg_cmd_write_s, next_pcie_cfg_cmd_addr_s,
-                                    next_pcie_cfg_cmd_data_s, next_pcie_cfg_fifo_tx_wr_data_s)
+                                    next_pcie_cfg_cmd_data_s, next_pcie_cfg_fifo_tx_wr_data_s,
+                                    next_pcie_cfg_cmd_write_readonly_s, next_pcie_cfg_cmd_write_rw1c_as_rw_s)
 begin
 
     if (sys_reset_i = '1') then
@@ -130,6 +135,8 @@ begin
         pcie_cfg_req_seq_id_s <= next_pcie_cfg_req_seq_id_s;
         pcie_cfg_cmd_write_be_s <= next_pcie_cfg_cmd_write_be_s;
         pcie_cfg_cmd_write_s <= next_pcie_cfg_cmd_write_s;
+        pcie_cfg_cmd_write_readonly_s <= next_pcie_cfg_cmd_write_readonly_s;
+        pcie_cfg_cmd_write_rw1c_as_rw_s <= next_pcie_cfg_cmd_write_rw1c_as_rw_s;
         pcie_cfg_cmd_addr_s <= next_pcie_cfg_cmd_addr_s;
         pcie_cfg_cmd_data_s <= next_pcie_cfg_cmd_data_s;
 
@@ -143,7 +150,8 @@ pcie_cfg_fsm_data_output_process: process(current_pcie_cfg_req_state, pcie_cfg_r
                                           pcie_cfg_cmd_write_be_s, pcie_cfg_cmd_write_s,
                                           pcie_cfg_cmd_addr_s, pcie_cfg_cmd_data_s,
                                           pcie_cfg_fifo_rx_rd_data_s, pcie_cfg_mgmt_producer_i,
-                                          pcie_cfg_fifo_tx_wr_data_s)
+                                          pcie_cfg_fifo_tx_wr_data_s, pcie_cfg_cmd_write_readonly_s,
+                                          pcie_cfg_cmd_write_rw1c_as_rw_s)
 begin
 
     pcie_cfg_fifo_rx_rd_en_s <= '0';
@@ -152,6 +160,8 @@ begin
     next_pcie_cfg_req_seq_id_s <= pcie_cfg_req_seq_id_s;
     next_pcie_cfg_cmd_write_be_s <= pcie_cfg_cmd_write_be_s;
     next_pcie_cfg_cmd_write_s <= pcie_cfg_cmd_write_s;
+    next_pcie_cfg_cmd_write_readonly_s <= pcie_cfg_cmd_write_readonly_s;
+    next_pcie_cfg_cmd_write_rw1c_as_rw_s <= pcie_cfg_cmd_write_rw1c_as_rw_s;
     next_pcie_cfg_cmd_addr_s <= pcie_cfg_cmd_addr_s;
     next_pcie_cfg_cmd_data_s <= pcie_cfg_cmd_data_s;
     next_pcie_cfg_fifo_tx_wr_data_s <= pcie_cfg_fifo_tx_wr_data_s;
@@ -170,7 +180,7 @@ begin
             pcie_cfg_fifo_rx_rd_en_s <= '1';
         when PCIE_CFG_PARSE_HEADER_1 =>
             -- First valid header word will be here
-            -- tsh_msg_type and tsh_msg_len are not interesting
+            -- tsh_msg_type and tsh_msg_len are not used by this component and ignored.
             pcie_cfg_fifo_rx_rd_en_s <= '1';
         when PCIE_CFG_PARSE_HEADER_2 =>
             next_pcie_cfg_req_seq_id_s <= pcie_cfg_fifo_rx_rd_data_s(15 downto 0) ;
@@ -181,6 +191,8 @@ begin
             pcie_cfg_fifo_rx_rd_en_s <= '1';
             next_pcie_cfg_cmd_addr_s <= pcie_cfg_fifo_rx_rd_data_s(9 downto 0);
             next_pcie_cfg_cmd_write_s <= pcie_cfg_fifo_rx_rd_data_s(16);
+            next_pcie_cfg_cmd_write_readonly_s <= pcie_cfg_fifo_rx_rd_data_s(17);
+            next_pcie_cfg_cmd_write_rw1c_as_rw_s <= pcie_cfg_fifo_rx_rd_data_s(18);
             next_pcie_cfg_cmd_write_be_s <= pcie_cfg_fifo_rx_rd_data_s(27 downto 24);
         when PCIE_CFG_PARSE_CMD_2 =>
             next_pcie_cfg_cmd_data_s <= pcie_cfg_fifo_rx_rd_data_s;
@@ -191,6 +203,20 @@ begin
             pcie_cfg_mgmt_consumer_o.cfg_mgmt_rd_en <= '1';
             pcie_cfg_mgmt_consumer_o.cfg_mgmt_dwaddr <= pcie_cfg_cmd_addr_s;
             next_pcie_cfg_cmd_data_s <= pcie_cfg_mgmt_producer_i.cfg_mgmt_do;
+        when PCIE_CFG_WRITE_1 =>
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_wr_en <= '1';
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_wr_readonly <= pcie_cfg_cmd_write_readonly_s;
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_wr_rw1c_as_rw <= pcie_cfg_cmd_write_rw1c_as_rw_s;
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_dwaddr <= pcie_cfg_cmd_addr_s;
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_di <= pcie_cfg_cmd_data_s;
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_byte_en <= pcie_cfg_cmd_write_be_s;
+        when PCIE_CFG_WRITE_2 =>
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_wr_en <= '1';
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_wr_readonly <= pcie_cfg_cmd_write_readonly_s;
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_wr_rw1c_as_rw <= pcie_cfg_cmd_write_rw1c_as_rw_s;
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_dwaddr <= pcie_cfg_cmd_addr_s;
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_di <= pcie_cfg_cmd_data_s;
+            pcie_cfg_mgmt_consumer_o.cfg_mgmt_byte_en <= pcie_cfg_cmd_write_be_s;
         when PCIE_CFG_TX_PACKET_1 =>
             next_pcie_cfg_fifo_tx_wr_en_s <= '1';
             next_pcie_cfg_fifo_tx_wr_data_s <= "00000000000001000000000000000001";
@@ -208,6 +234,8 @@ begin
             next_pcie_cfg_req_seq_id_s <= (others => '0');
             next_pcie_cfg_cmd_write_be_s <= (others => '0');
             next_pcie_cfg_cmd_write_s <= '0';
+            next_pcie_cfg_cmd_write_readonly_s <= '0';
+            next_pcie_cfg_cmd_write_rw1c_as_rw_s <= '0';
             next_pcie_cfg_cmd_addr_s <= (others => '0');
             next_pcie_cfg_cmd_data_s <= (others => '0');
     end case;
@@ -237,11 +265,17 @@ begin
             if (pcie_cfg_cmd_write_s = '0') then
                 next_pcie_cfg_req_state <= PCIE_CFG_READ_1;
             else
-                next_pcie_cfg_req_state <= PCIE_CFG_IDLE;
+                next_pcie_cfg_req_state <= PCIE_CFG_WRITE_1;
             end if;
         when PCIE_CFG_READ_1 =>
             next_pcie_cfg_req_state <= PCIE_CFG_READ_2;
         when PCIE_CFG_READ_2 =>
+            if (pcie_cfg_mgmt_producer_i.cfg_mgmt_rd_wr_done = '1') then
+                next_pcie_cfg_req_state <= PCIE_CFG_TX_PACKET_1;
+            end if;
+        when PCIE_CFG_WRITE_1 =>
+            next_pcie_cfg_req_state <= PCIE_CFG_WRITE_2;
+        when PCIE_CFG_WRITE_2 =>
             if (pcie_cfg_mgmt_producer_i.cfg_mgmt_rd_wr_done = '1') then
                 next_pcie_cfg_req_state <= PCIE_CFG_TX_PACKET_1;
             end if;
