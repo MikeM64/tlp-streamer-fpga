@@ -11,6 +11,6 @@ The current board target is the [Screamer M.2](https://shop.lambdaconcept.com/ho
  - [x] - Host Packet RX Dispatch
  - [x] - FPGA Packet TX Arbitration
  - [x] - PCIe Link Up
-   - [ ] - PCIe configuration space R/W
+   - [x] - PCIe configuration space R/W
    - [ ] - PCIe TLP R/W
    - [ ] - Host software
