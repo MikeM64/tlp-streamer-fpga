@@ -273,7 +273,7 @@ comp_pcie_7x_0: pcie_7x_0
         sys_rst_n => pcie_rst_n_s
   );
 
-pcie_reset_process: process(sys_reset_i, pcie_perst_n_i)
+pcie_reset_process: process(sys_reset_i, pcie_perst_n_i, user_lnk_up_s)
 begin
 
     pcie_wake_n_o <= '1';
