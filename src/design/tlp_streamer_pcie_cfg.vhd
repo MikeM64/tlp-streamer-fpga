@@ -225,7 +225,8 @@ begin
             next_pcie_cfg_fifo_tx_wr_data_s <=  "0000000000000000" & pcie_cfg_req_seq_id_s;
         when PCIE_CFG_TX_PACKET_3 =>
             next_pcie_cfg_fifo_tx_wr_en_s <= '1';
-            next_pcie_cfg_fifo_tx_wr_data_s <= "0000" & pcie_cfg_cmd_write_be_s & "0000000" &
+            next_pcie_cfg_fifo_tx_wr_data_s <= "0000" & pcie_cfg_cmd_write_be_s & "00000" &
+                                                pcie_cfg_cmd_write_rw1c_as_rw_s & pcie_cfg_cmd_write_readonly_s &
                                                 pcie_cfg_cmd_write_s & "000000" & pcie_cfg_cmd_addr_s;
         when PCIE_CFG_TX_PACKET_4 =>
             next_pcie_cfg_fifo_tx_wr_en_s <= '1';
