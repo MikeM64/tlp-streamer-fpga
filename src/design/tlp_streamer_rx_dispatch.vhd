@@ -95,7 +95,7 @@ begin
     dispatch_rd_en_s <= '0';
     dispatch_wr_en_s <= '0';
     next_dispatch_output_queue <= dispatch_output_queue;
-    next_dispatch_words_to_write <= dispatch_words_to_write - 1;
+    next_dispatch_words_to_write <= dispatch_words_to_write;
 
     case current_dispatch_state_s is
         when DISPATCH_IDLE =>
@@ -119,9 +119,11 @@ begin
             -- output component
             dispatch_rd_en_s <= '1';
             dispatch_wr_en_s <= '1';
+            next_dispatch_words_to_write <= dispatch_words_to_write - 1;
         when DISPATCH_WRITE_PACKET =>
             dispatch_rd_en_s <= '1';
             dispatch_wr_en_s <= dispatch_rd_valid_s_2;
+            next_dispatch_words_to_write <= dispatch_words_to_write - 1;
         when DISPATCH_COMPLETE =>
             next_dispatch_words_to_write <= 0;
     end case;

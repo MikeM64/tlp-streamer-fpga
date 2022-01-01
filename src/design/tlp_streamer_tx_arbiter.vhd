@@ -97,7 +97,7 @@ begin
     arbiter_rd_en_s <= '0';
     arbiter_wr_en_s <= '0';
     next_arbiter_input_queue <= arbiter_input_queue;
-    next_arbiter_words_to_write <= arbiter_words_to_write - 1;
+    next_arbiter_words_to_write <= arbiter_words_to_write;
 
     case current_arbiter_state_s is
         when ARBITER_IDLE =>
@@ -123,6 +123,7 @@ begin
                 arbiter_rd_en_s <= '0';
             end if;
             arbiter_wr_en_s <= arbiter_rd_valid_s_2;
+            next_arbiter_words_to_write <= arbiter_words_to_write - 1;
         when ARBITER_COMPLETE_1 =>
             next_arbiter_words_to_write <= 0;
         when ARBITER_COMPLETE_2 =>
@@ -130,6 +131,7 @@ begin
             -- signal to be de-asserted for the selected input before
             -- resetting the input queue for the next TX packet
             next_arbiter_input_queue <= NUM_INPUT_QUEUES;
+            next_arbiter_words_to_write <= 0;
     end case;
 
 end process arbiter_fsm_data_output_process;
