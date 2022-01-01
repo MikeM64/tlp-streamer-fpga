@@ -127,7 +127,11 @@ component tlp_streamer_pcie is
         pcie_cfg_dispatch_i : in dispatch_producer_r;
         pcie_cfg_dispatch_o : out dispatch_consumer_r;
         pcie_cfg_arbiter_i : in arbiter_producer_r;
-        pcie_cfg_arbiter_o : out arbiter_consumer_r);
+        pcie_cfg_arbiter_o : out arbiter_consumer_r;
+        pcie_tlp_dispatch_i : in dispatch_producer_r;
+        pcie_tlp_dispatch_o : out dispatch_consumer_r;
+        pcie_tlp_arbiter_i : in arbiter_producer_r;
+        pcie_tlp_arbiter_o : out arbiter_consumer_r);
 end component tlp_streamer_pcie;
 
 -- Signals for FT601 RX/TX
@@ -143,12 +147,16 @@ signal loopback_queue_out: dispatch_producer_r;
 signal loopback_queue_in: dispatch_consumer_r;
 signal pcie_cfg_rx_dispatch_out: dispatch_producer_r;
 signal pcie_cfg_rx_dispatch_in: dispatch_consumer_r;
+signal pcie_tlp_rx_dispatch_out: dispatch_producer_r;
+signal pcie_tlp_rx_dispatch_in: dispatch_consumer_r;
 
 -- Signals for TX arbitration
 signal loopback_tx_out: arbiter_producer_r;
 signal loopback_tx_in: arbiter_consumer_r;
 signal pcie_cfg_tx_arbiter_out: arbiter_producer_r;
 signal pcie_cfg_tx_arbiter_in: arbiter_consumer_r;
+signal pcie_tlp_tx_arbiter_out: arbiter_producer_r;
+signal pcie_tlp_tx_arbiter_in: arbiter_consumer_r;
 
 begin
 
@@ -193,13 +201,19 @@ comp_tlp_streamer_pcie: tlp_streamer_pcie
         pcie_rxp_i => pcie_rxp_i,
         pcie_rxn_i => pcie_rxn_i,
         pcie_usr_link_up_o => open,
+        -- Conguration management port
         pcie_cfg_dispatch_i => pcie_cfg_rx_dispatch_out,
         pcie_cfg_dispatch_o => pcie_cfg_rx_dispatch_in,
         pcie_cfg_arbiter_i => pcie_cfg_tx_arbiter_out,
-        pcie_cfg_arbiter_o => pcie_cfg_tx_arbiter_in);
+        pcie_cfg_arbiter_o => pcie_cfg_tx_arbiter_in,
+        -- TLP Packet handling
+        pcie_tlp_dispatch_i => pcie_tlp_rx_dispatch_out,
+        pcie_tlp_dispatch_o => pcie_tlp_rx_dispatch_in,
+        pcie_tlp_arbiter_i => pcie_tlp_tx_arbiter_out,
+        pcie_tlp_arbiter_o => pcie_tlp_tx_arbiter_in);
 
 comp_tlp_streamer_rx_dispatch: tlp_streamer_rx_dispatch
-    generic map (NUM_OUTPUT_QUEUES => 2)
+    generic map (NUM_OUTPUT_QUEUES => 3)
     port map(
          sys_clk_i => sys_clk,
          sys_reset_i => tlp_streamer_reset_s,
@@ -212,19 +226,23 @@ comp_tlp_streamer_rx_dispatch: tlp_streamer_rx_dispatch
          -- These MUST correspond to tsh_msg_type_et.
          dispatch_o_arr(0) => loopback_queue_out,
          dispatch_o_arr(1) => pcie_cfg_rx_dispatch_out,
+         dispatch_o_arr(2) => pcie_tlp_rx_dispatch_out,
          dispatch_i_arr(0) => loopback_queue_in,
-         dispatch_i_arr(1) => pcie_cfg_rx_dispatch_in);
+         dispatch_i_arr(1) => pcie_cfg_rx_dispatch_in,
+         dispatch_i_arr(2) => pcie_tlp_rx_dispatch_in);
 
 comp_tlp_streamer_tx_arbiter: tlp_streamer_tx_arbiter
-    generic map (NUM_INPUT_QUEUES => 2)
+    generic map (NUM_INPUT_QUEUES => 3)
     port map (
         sys_clk_i => sys_clk,
         sys_reset_i => tlp_streamer_reset_s,
         -- Input FIFOs to arbitrate
         arbiter_o_arr(0) => loopback_tx_out,
         arbiter_o_arr(1) => pcie_cfg_tx_arbiter_out,
+        arbiter_o_arr(2) => pcie_tlp_tx_arbiter_out,
         arbiter_i_arr(0) => loopback_tx_in,
         arbiter_i_arr(1) => pcie_cfg_tx_arbiter_in,
+        arbiter_i_arr(2) => pcie_tlp_tx_arbiter_in,
         -- Output FIFO to feed
         arbiter_output_wr_en_o => ft601_tx_wr_en_s,
         arbiter_output_wr_full_i => ft601_wr_full_s,

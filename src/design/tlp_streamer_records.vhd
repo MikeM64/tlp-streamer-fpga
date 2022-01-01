@@ -65,4 +65,28 @@ type pcie_cfg_mgmt_port_consumer_r is record
         cfg_mgmt_wr_rw1c_as_rw : STD_LOGIC;
 end record pcie_cfg_mgmt_port_consumer_r;
 
+type pcie_tlp_tx_port_producer_r is record
+    tlp_axis_tx_tready : std_logic;
+end record pcie_tlp_tx_port_producer_r;
+
+type pcie_tlp_tx_port_consumer_r is record
+    tlp_axis_tx_tdata : std_logic_vector(63 downto 0);
+    tlp_axis_tx_tkeep : std_logic_vector(7 downto 0);
+    tlp_axis_tx_tlast : std_logic;
+    tlp_axis_tx_tvalid : std_logic;
+    tlp_axis_tx_tuser : std_logic_vector(3 downto 0);
+end record pcie_tlp_tx_port_consumer_r;
+
+type pcie_tlp_rx_port_producer_r is record
+    tlp_axis_rx_tdata : std_logic_vector(63 downto 0);
+    tlp_axis_rx_tkeep : std_logic_vector(7 downto 0);
+    tlp_axis_rx_tlast : std_logic;
+    tlp_axis_rx_tvalid : std_logic;
+    tlp_axis_rx_tuser : std_logic_vector(21 downto 0);
+end record pcie_tlp_rx_port_producer_r;
+
+type pcie_tlp_rx_port_consumer_r is record
+    tlp_axis_rx_tready : std_logic;
+end record pcie_tlp_rx_port_consumer_r;
+
 end package tlp_streamer_records;

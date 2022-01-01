@@ -33,7 +33,11 @@ entity tlp_streamer_pcie is
         pcie_cfg_dispatch_i : in dispatch_producer_r;
         pcie_cfg_dispatch_o : out dispatch_consumer_r;
         pcie_cfg_arbiter_i : in arbiter_producer_r;
-        pcie_cfg_arbiter_o : out arbiter_consumer_r);
+        pcie_cfg_arbiter_o : out arbiter_consumer_r;
+        pcie_tlp_dispatch_i : in dispatch_producer_r;
+        pcie_tlp_dispatch_o : out dispatch_consumer_r;
+        pcie_tlp_arbiter_i : in arbiter_producer_r;
+        pcie_tlp_arbiter_o : out arbiter_consumer_r);
         --pcie_usr_app_rdy : out std_logic;
         --pcie_s_axi_tx_tready_o : out std_logic;
         --pcie_s_axi_tx_tdata_i : in std_logic_vector(63 downto 0);
@@ -135,21 +139,28 @@ component tlp_streamer_pcie_cfg is
         arbiter_o : out arbiter_consumer_r);
 end component tlp_streamer_pcie_cfg;
 
+component tlp_streamer_pcie_tlp is
+    port (
+        sys_clk_i   : in std_logic;
+        pcie_clk_i  : in std_logic;
+        pcie_rst_i  : in std_logic;
+        -- Host Packet RX/TX management
+        dispatch_i : in dispatch_producer_r;
+        dispatch_o : out dispatch_consumer_r;
+        arbiter_i : in arbiter_producer_r;
+        arbiter_o : out arbiter_consumer_r;
+        -- PCIe Core TLP Interface
+        pcie_tlp_tx_producer_i : in pcie_tlp_tx_port_producer_r;
+        pcie_tlp_tx_consumer_o : out pcie_tlp_tx_port_consumer_r;
+        pcie_tlp_rx_producer_i : in pcie_tlp_rx_port_producer_r;
+        pcie_tlp_rx_consumer_o : out pcie_tlp_rx_port_consumer_r);
+end component tlp_streamer_pcie_tlp;
+
 signal pcie_rst_n_s: std_logic;
 signal pcie_clk_s: std_logic;
 
 -- Temporary signal until more behaviour is implemented/exposed to other components.
 signal user_clk_s, user_lnk_up_s, user_reset_s, user_app_rdy_s: std_logic;
-
-signal s_axis_tx_tready_s, s_axis_tx_tlast_s, s_axis_tx_tvalid_s: std_logic := '0';
-signal s_axis_tx_tdata_s: std_logic_vector(63 downto 0) := "0000000000000000000000000000000000000000000000000000000000000000";
-signal s_axis_tx_tkeep_s: std_logic_vector(7 downto 0) := "00000000";
-signal s_axis_tx_tuser_s: std_logic_vector(3 downto 0) := "0000";
-
-signal m_axis_rx_tlast_s, m_axis_rx_tvalid_s, m_axis_rx_tready_s: std_logic := '0';
-signal m_axis_rx_tdata_s: std_logic_vector(63 downto 0) := "0000000000000000000000000000000000000000000000000000000000000000";
-signal m_axis_rx_tkeep_s: std_logic_vector(7 downto 0) := "00000000";
-signal m_axis_rx_tuser_s: std_logic_vector(21 downto 0) := "0000000000000000000000";
 
 signal cfg_interrupt_s, cfg_interrupt_rdy_s, cfg_interrupt_assert_s,
     cfg_interrupt_msienable_s, cfg_interrupt_msixenable_s,
@@ -172,6 +183,12 @@ signal pcie_clk_blink_64_s: unsigned(63 downto 0) := (others => '0');
 -- Configuration management interface
 signal pcie_cfg_mgmt_producer_s: pcie_cfg_mgmt_port_producer_r;
 signal pcie_cfg_mgmt_consumer_s: pcie_cfg_mgmt_port_consumer_r;
+
+-- TLP RX/TX Interface
+signal pcie_tlp_tx_producer_s: pcie_tlp_tx_port_producer_r;
+signal pcie_tlp_tx_consumer_s: pcie_tlp_tx_port_consumer_r;
+signal pcie_tlp_rx_producer_s: pcie_tlp_rx_port_producer_r;
+signal pcie_tlp_rx_consumer_s: pcie_tlp_rx_port_consumer_r;
 
 begin
 
@@ -206,6 +223,22 @@ comp_tlp_streamer_pcie_cfg: tlp_streamer_pcie_cfg
         arbiter_i => pcie_cfg_arbiter_i,
         arbiter_o => pcie_cfg_arbiter_o);
 
+comp_tlp_streamer_pcie_tlp: tlp_streamer_pcie_tlp
+    port map(
+        sys_clk_i => sys_clk_i,
+        pcie_clk_i => user_clk_s,
+        pcie_rst_i => user_reset_s,
+        -- Host Packet RX/TX management
+        dispatch_i => pcie_tlp_dispatch_i,
+        dispatch_o => pcie_tlp_dispatch_o,
+        arbiter_i => pcie_tlp_arbiter_i,
+        arbiter_o => pcie_tlp_arbiter_o,
+        -- PCIe Core TLP Interface
+        pcie_tlp_tx_producer_i => pcie_tlp_tx_producer_s,
+        pcie_tlp_tx_consumer_o => pcie_tlp_tx_consumer_s,
+        pcie_tlp_rx_producer_i => pcie_tlp_rx_producer_s,
+        pcie_tlp_rx_consumer_o => pcie_tlp_rx_consumer_s);
+
 comp_pcie_7x_0: pcie_7x_0
     port map(
         pci_exp_txp => pcie_txp_o,
@@ -216,18 +249,18 @@ comp_pcie_7x_0: pcie_7x_0
         user_reset_out => user_reset_s,
         user_lnk_up => user_lnk_up_s,
         user_app_rdy => user_app_rdy_s,
-        s_axis_tx_tready => s_axis_tx_tready_s,
-        s_axis_tx_tdata => s_axis_tx_tdata_s,
-        s_axis_tx_tkeep => s_axis_tx_tkeep_s,
-        s_axis_tx_tlast => s_axis_tx_tlast_s,
-        s_axis_tx_tvalid => s_axis_tx_tvalid_s,
-        s_axis_tx_tuser => s_axis_tx_tuser_s,
-        m_axis_rx_tdata => m_axis_rx_tdata_s,
-        m_axis_rx_tkeep => m_axis_rx_tkeep_s,
-        m_axis_rx_tlast => m_axis_rx_tlast_s,
-        m_axis_rx_tvalid => m_axis_rx_tvalid_s,
-        m_axis_rx_tready => m_axis_rx_tready_s,
-        m_axis_rx_tuser => m_axis_rx_tuser_s,
+        s_axis_tx_tready => pcie_tlp_tx_producer_s.tlp_axis_tx_tready,
+        s_axis_tx_tdata => pcie_tlp_tx_consumer_s.tlp_axis_tx_tdata,
+        s_axis_tx_tkeep => pcie_tlp_tx_consumer_s.tlp_axis_tx_tkeep,
+        s_axis_tx_tlast => pcie_tlp_tx_consumer_s.tlp_axis_tx_tlast,
+        s_axis_tx_tvalid => pcie_tlp_tx_consumer_s.tlp_axis_tx_tvalid,
+        s_axis_tx_tuser => pcie_tlp_tx_consumer_s.tlp_axis_tx_tuser,
+        m_axis_rx_tdata => pcie_tlp_rx_producer_s.tlp_axis_rx_tdata,
+        m_axis_rx_tkeep => pcie_tlp_rx_producer_s.tlp_axis_rx_tkeep,
+        m_axis_rx_tlast => pcie_tlp_rx_producer_s.tlp_axis_rx_tlast,
+        m_axis_rx_tvalid => pcie_tlp_rx_producer_s.tlp_axis_rx_tvalid,
+        m_axis_rx_tready => pcie_tlp_rx_consumer_s.tlp_axis_rx_tready,
+        m_axis_rx_tuser => pcie_tlp_rx_producer_s.tlp_axis_rx_tuser,
         -- Configuration space management port
         cfg_mgmt_do => pcie_cfg_mgmt_producer_s.cfg_mgmt_do,
         cfg_mgmt_rd_wr_done => pcie_cfg_mgmt_producer_s.cfg_mgmt_rd_wr_done,
