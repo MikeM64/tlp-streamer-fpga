@@ -66,6 +66,22 @@ component fifo_pcie_tlp_r32_w64_4096_bram IS
   );
 end component fifo_pcie_tlp_r32_w64_4096_bram;
 
+component pcie_tlp_ila IS
+    port (
+        clk : IN STD_LOGIC;
+        probe0 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe1 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe2 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe3 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe4 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe5 : IN STD_LOGIC_VECTOR(2 DOWNTO 0);
+        probe6 : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
+        probe7 : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
+        probe8 : IN STD_LOGIC_VECTOR(63 DOWNTO 0)
+);
+end component pcie_tlp_ila;
+
+-- TX FSM Signals and types
 type pcie_tlp_tx_req_state is (PCIE_TLP_TX_IDLE, PCIE_TLP_TX_PACKET_START, PCIE_TLP_TX_PACKET_PARSE_HEADER,
                                PCIE_TLP_TX_PACKET);
 
@@ -82,7 +98,17 @@ signal pcie_tlp_fifo_tx_rd_valid_s: std_logic;
 -- 514 is (1024 DW Max TLP Payload + 4 DW Max TLP Header == 1028 DW == 514 QW)
 signal pcie_tlp_tx_qwords_to_read, next_pcie_tlp_tx_qwords_to_read: integer range 0 to 514;
 
+
+-- RX FSM Signals and types
+type pcie_tlp_rx_req_state is (PCIE_TLP_AWAIT_RX, PCIE_TLP_RX_WRITE_HEADER, PCIE_TLP_RX_WRITE_TLP);
+
+signal current_pcie_tlp_rx_req_state, next_pcie_tlp_rx_req_state: pcie_tlp_rx_req_state;
+signal ila_current_tlp_state: std_logic_vector(2 downto 0);
+
 signal pcie_tlp_fifo_rx_wr_data_s, next_pcie_tlp_fifo_rx_wr_data_s: std_logic_vector(63 downto 0);
+-- Buffer to allow time for the header to be added to the RX FIFO ahead of the RXd TLP
+signal pcie_tlp_rx_buffer_s_1, pcie_tlp_rx_buffer_s_2: std_logic_vector(63 downto 0);
+signal pcie_tlp_rx_buffer_valid_s_1, pcie_tlp_rx_buffer_valid_s_2: std_logic;
 signal pcie_tlp_fifo_rx_wr_en_s, next_pcie_tlp_fifo_rx_wr_en_s: std_logic;
 signal pcie_tlp_fifo_rx_rd_data_s: std_logic_vector(31 downto 0);
 signal pcie_tlp_fifo_rx_rd_en_s, next_pcie_tlp_fifo_rx_rd_en_s: std_logic;
@@ -131,24 +157,19 @@ begin
 
 end process pcie_tlp_rx_tx_async_process;
 
-pcie_tlp_tx_fsm_state_process: process(pcie_clk_i, pcie_rst_i, next_pcie_tlp_fifo_rx_wr_data_s,
-                                       next_pcie_tlp_fifo_rx_wr_en_s, next_pcie_tlp_tx_req_state,
+pcie_tlp_tx_fsm_clock_process: process(pcie_clk_i, pcie_rst_i, next_pcie_tlp_tx_req_state,
                                        next_pcie_tlp_tx_qwords_to_read)
 begin
 
     if (pcie_rst_i = '1') then
         current_pcie_tlp_tx_req_state <= PCIE_TLP_TX_IDLE;
-        pcie_tlp_fifo_rx_wr_data_s <= (others => '0');
-        pcie_tlp_fifo_rx_wr_en_s <= '0';
         pcie_tlp_tx_qwords_to_read <= 0;
     elsif (rising_edge(pcie_clk_i)) then
         current_pcie_tlp_tx_req_state <= next_pcie_tlp_tx_req_state;
-        pcie_tlp_fifo_rx_wr_data_s <= next_pcie_tlp_fifo_rx_wr_data_s;
-        pcie_tlp_fifo_rx_wr_en_s <= next_pcie_tlp_fifo_rx_wr_en_s;
         pcie_tlp_tx_qwords_to_read <= next_pcie_tlp_tx_qwords_to_read;
     end if;
 
-end process pcie_tlp_tx_fsm_state_process;
+end process pcie_tlp_tx_fsm_clock_process;
 
 pcie_tlp_tx_fsm_data_output_process: process(current_pcie_tlp_tx_req_state,
                                              pcie_tlp_tx_qwords_to_read, pcie_tlp_fifo_tx_rd_data_s,
@@ -189,7 +210,7 @@ begin
 end process pcie_tlp_tx_fsm_data_output_process;
 
 pcie_tlp_tx_fsm_state_select_process: process(current_pcie_tlp_tx_req_state, pcie_tlp_fifo_tx_rd_empty_s,
-                                              pcie_tlp_tx_producer_i)
+                                              pcie_tlp_tx_producer_i, pcie_tlp_tx_qwords_to_read)
 begin
 
     next_pcie_tlp_tx_req_state <= current_pcie_tlp_tx_req_state;
@@ -211,5 +232,104 @@ begin
     end case;
 
 end process pcie_tlp_tx_fsm_state_select_process;
+
+comp_pcie_tlp_ila: pcie_tlp_ila
+    port map(
+        clk => pcie_clk_i,
+        probe0(0) => pcie_tlp_rx_producer_i.tlp_axis_rx_tvalid,
+        probe1(0) => pcie_tlp_rx_producer_i.tlp_axis_rx_tlast,
+        probe2(0) => pcie_tlp_rx_buffer_valid_s_1,
+        probe3(0) => pcie_tlp_rx_buffer_valid_s_2,
+        probe4(0) => pcie_tlp_fifo_rx_wr_en_s,
+        probe5 => ila_current_tlp_state,
+        probe6 => pcie_tlp_rx_buffer_s_1,
+        probe7 => pcie_tlp_rx_buffer_s_2,
+        probe8 => pcie_tlp_fifo_rx_wr_data_s);
+
+pcie_tlp_rx_clock_process: process(pcie_clk_i, pcie_rst_i, next_pcie_tlp_rx_req_state,
+                                   next_pcie_tlp_fifo_rx_wr_data_s, next_pcie_tlp_fifo_rx_wr_en_s,
+                                   pcie_tlp_rx_producer_i)
+begin
+
+    if (pcie_rst_i = '1') then
+        current_pcie_tlp_rx_req_state <= PCIE_TLP_AWAIT_RX;
+        pcie_tlp_fifo_rx_wr_data_s <= (others => '0');
+        pcie_tlp_fifo_rx_wr_en_s <= '0';
+    elsif (rising_edge(pcie_clk_i)) then
+        current_pcie_tlp_rx_req_state <= next_pcie_tlp_rx_req_state;
+        ila_current_tlp_state <= std_logic_vector(to_unsigned(pcie_tlp_rx_req_state'POS(next_pcie_tlp_rx_req_state), 3));
+        pcie_tlp_fifo_rx_wr_data_s <= next_pcie_tlp_fifo_rx_wr_data_s;
+        pcie_tlp_fifo_rx_wr_en_s <= next_pcie_tlp_fifo_rx_wr_en_s;
+
+        pcie_tlp_rx_buffer_s_1 <= pcie_tlp_rx_producer_i.tlp_axis_rx_tdata;
+        pcie_tlp_rx_buffer_s_2 <= pcie_tlp_rx_buffer_s_1;
+
+        pcie_tlp_rx_buffer_valid_s_1 <= pcie_tlp_rx_producer_i.tlp_axis_rx_tvalid;
+        pcie_tlp_rx_buffer_valid_s_2 <= pcie_tlp_rx_buffer_valid_s_1;
+    end if;
+
+end process pcie_tlp_rx_clock_process;
+
+pcie_tlp_rx_fsm_data_output_process: process(current_pcie_tlp_rx_req_state, pcie_tlp_fifo_rx_wr_full_s,
+                                             pcie_tlp_rx_buffer_s_1, pcie_tlp_rx_buffer_s_2, pcie_tlp_rx_producer_i,
+                                             pcie_tlp_rx_buffer_valid_s_2)
+
+variable pcie_tlp_rx_packet_len_v: integer range 0 to 65535;
+
+begin
+
+    pcie_tlp_rx_consumer_o.tlp_axis_rx_tready <= not pcie_tlp_fifo_rx_wr_full_s;
+    next_pcie_tlp_fifo_rx_wr_en_s <= '0';
+    next_pcie_tlp_fifo_rx_wr_data_s <= pcie_tlp_rx_buffer_s_2;
+
+    case current_pcie_tlp_rx_req_state is
+        when PCIE_TLP_AWAIT_RX =>
+        when PCIE_TLP_RX_WRITE_HEADER =>
+            next_pcie_tlp_fifo_rx_wr_en_s <= '1';
+            -- Setup the tlp_streamer header length based on the TLP
+            -- format and length contained in the first QW read.
+            if (pcie_tlp_rx_buffer_s_1(30) = '1') then
+                -- This TLP has data attached to it
+                if (pcie_tlp_rx_buffer_s_1(9 downto 0) = "0000000000") then
+                    pcie_tlp_rx_packet_len_v := 2 + 4 + 1024;
+                else
+                    pcie_tlp_rx_packet_len_v := 2 + 4 + to_integer(unsigned(pcie_tlp_rx_buffer_s_1(9 downto 0)));
+                end if;
+            else
+                -- TLPs are always assumed to have a 4-byte header in the FPGA
+                -- to easily align with natural QW/FIFO write boundaries.
+                -- The host will ignore the additional bytes when it processes the TLP.
+                pcie_tlp_rx_packet_len_v := 2 + 4;
+            end if;
+            next_pcie_tlp_fifo_rx_wr_data_s <= std_logic_vector(to_unsigned(pcie_tlp_rx_packet_len_v, 16)) & "0000000000000010" &
+                                               "1010101010101010" & "1111010100001010";
+        when PCIE_TLP_RX_WRITE_TLP =>
+            next_pcie_tlp_fifo_rx_wr_en_s <= pcie_tlp_rx_buffer_valid_s_2;
+    end case;
+
+end process pcie_tlp_rx_fsm_data_output_process;
+
+pcie_tlp_rx_fsm_state_select_process: process(current_pcie_tlp_rx_req_state, pcie_tlp_rx_producer_i,
+                                              pcie_tlp_rx_buffer_valid_s_2)
+begin
+
+    next_pcie_tlp_rx_req_state <= current_pcie_tlp_rx_req_state;
+
+    case current_pcie_tlp_rx_req_state is
+        when PCIE_TLP_AWAIT_RX =>
+            if (pcie_tlp_rx_producer_i.tlp_axis_rx_tvalid = '1') then
+                next_pcie_tlp_rx_req_state <= PCIE_TLP_RX_WRITE_HEADER;
+            end if;
+        when PCIE_TLP_RX_WRITE_HEADER =>
+            next_pcie_tlp_rx_req_state <= PCIE_TLP_RX_WRITE_TLP;
+        when PCIE_TLP_RX_WRITE_TLP =>
+            if (pcie_tlp_rx_producer_i.tlp_axis_rx_tlast = '1' or
+                (pcie_tlp_rx_producer_i.tlp_axis_rx_tvalid = '0' and pcie_tlp_rx_buffer_valid_s_2 = '0')) then
+                next_pcie_tlp_rx_req_state <= PCIE_TLP_AWAIT_RX;
+            end if;
+    end case;
+
+end process pcie_tlp_rx_fsm_state_select_process;
+
 
 end architecture RTL;

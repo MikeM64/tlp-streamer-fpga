@@ -212,3 +212,75 @@ This block manages regular TLP transfers to and from the PCIe IP. It needs to pu
 
 #### PCIe Configuration Management
 This block manages configuration TLP transfers to and from the PCIe IP. It also needs to pull data and feed the FIFO in fron of the FT601 at a higher priority than regular data traffic.
+
+# Notes on manual testing
+## How to trigger rescan after upgrading the bitstream
+0) Flash new bitstream to the card
+
+1) Get the PCI slot from `lspci`:
+```
+$ lspci -d 13a8:7021
+0b:00.0 Serial controller: Exar Corp. Device 7021
+```
+
+2) Remove the device (as root):
+```
+$ echo 1 > /sys/bus/pci/devices/0000\:0b\:00.0/remove
+```
+
+3) Re-scan the PCI bus (as root):
+```
+$ echo 1 > /sys/bus/pci/rescan
+```
+
+## Enabling MMIO for MRd/MWr TLP Generation
+0) Get the PCI slot from `lspci`:
+```
+$ lspci -d 13a8:7021
+0b:00.0 Serial controller: Exar Corp. Device 7021
+```
+
+1) Enable MMIO for the slot (as root):
+```
+$ setpci -s 0b:00.0 COMMAND=0x2
+```
+
+2) Verify the `BAR` is enabled
+  - There should not be `[virtual]` or `[disabled]` in the output of lspci
+Working output:
+```
+$ lspci -d 13a8:7021 -v | grep "Memory at"
+  Memory at fcc00000 (32-bit, non-prefetchable) [size=2K]
+```
+
+Non-working output:
+```
+$ lspci -d 13a8:7021 -v | grep "Memory at"
+  Memory at fcc00000 (32-bit, non-prefetchable) [disabled] [size=2K]
+```
+
+## Trigger a MRd/MWr TLP
+0) Get the PCI slot from `lspci`:
+```
+$ lspci -d 13a8:7021
+0b:00.0 Serial controller: Exar Corp. Device 7021
+```
+
+1) Find the sysfs path to the PCIe device
+```
+$ find /sys/devices -name '0000:0b:00.0' | grep -v iommu
+/sys/devices/pci0000:00/0000:00:03.2/0000:0b:00.0
+```
+1) Trigger a MRd TLP (as root)
+  - Requires pcimem - https://github.com/billfarrow/pcimem
+  - If the kernel has loaded a driver for the PCIe device, it may need to be unloaded first
+  - The `resource0` file corresponds to `BAR0`, adjust as necessary for the appropriate `BAR` address.
+```
+$ ./pcimem /sys/devices/pci0000\:00/0000\:00\:03.2/0000\:0b\:00.0/resource0 0 w
+/sys/devices/pci0000:00/0000:00:03.2/0000:0b:00.0/resource0 opened.
+Target offset is 0x0, page size is 4096
+mmap(0, 4096, 0x3, 0x1, 3, 0x0)
+PCI Memory mapped to address 0x7fe58be8c000.
+0x0000: 0xFFFFFFFF
+
+```
