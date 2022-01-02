@@ -247,6 +247,7 @@ $ setpci -s 0b:00.0 COMMAND=0x2
 
 2) Verify the `BAR` is enabled
   - There should not be `[virtual]` or `[disabled]` in the output of lspci
+
 Working output:
 ```
 $ lspci -d 13a8:7021 -v | grep "Memory at"
@@ -282,5 +283,4 @@ Target offset is 0x0, page size is 4096
 mmap(0, 4096, 0x3, 0x1, 3, 0x0)
 PCI Memory mapped to address 0x7fe58be8c000.
 0x0000: 0xFFFFFFFF
-
 ```
