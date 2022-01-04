@@ -219,7 +219,7 @@ begin
             pcie_cfg_mgmt_consumer_o.cfg_mgmt_byte_en <= pcie_cfg_cmd_write_be_s;
         when PCIE_CFG_TX_PACKET_1 =>
             next_pcie_cfg_fifo_tx_wr_en_s <= '1';
-            next_pcie_cfg_fifo_tx_wr_data_s <= "00000000000001000000000000000001";
+            next_pcie_cfg_fifo_tx_wr_data_s <= "0000010000000000" & "00000000" & "00000001";
         when PCIE_CFG_TX_PACKET_2 =>
             next_pcie_cfg_fifo_tx_wr_en_s <= '1';
             next_pcie_cfg_fifo_tx_wr_data_s <=  "0000000000000000" & pcie_cfg_req_seq_id_s;

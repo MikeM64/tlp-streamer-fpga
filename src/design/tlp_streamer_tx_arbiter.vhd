@@ -115,7 +115,7 @@ begin
         when ARBITER_READ_HEADER =>
             arbiter_rd_en_s <= '1';
             arbiter_wr_en_s <= arbiter_rd_valid_s_2;
-            next_arbiter_words_to_write <= to_integer(unsigned(arbiter_rd_data_s_3(31 downto 16))) - 1;
+            next_arbiter_words_to_write <= to_integer(unsigned(arbiter_rd_data_s_3(23 downto 16) & arbiter_rd_data_s_3(31 downto 24))) - 1;
         when ARBITER_WRITE_PACKET =>
             if (arbiter_words_to_write > 3) then
                 arbiter_rd_en_s <= '1';

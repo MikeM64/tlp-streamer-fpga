@@ -111,9 +111,8 @@ begin
             dispatch_wr_en_s <= '1';
             -- tsh_msg_type
             next_dispatch_output_queue <= to_integer(unsigned(dispatch_data_s_2(7 downto 0)));
-            -- tsh_msg_len
-            -- -1 as this first dword is already being written to the destination.
-            next_dispatch_words_to_write <= to_integer(unsigned(dispatch_data_s_2(31 downto 16)));
+            -- tsh_msg_len - Stored in network order
+            next_dispatch_words_to_write <= to_integer(unsigned(dispatch_data_s_2(23 downto 16) & dispatch_data_s_2(31 downto 24)));
         when DISPATCH_WRITE_HEADER =>
             -- Now that the header is available, it can be written-through to the
             -- output component

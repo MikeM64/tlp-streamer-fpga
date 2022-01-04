@@ -139,7 +139,10 @@ comp_pcie_tlp_rx_fifo: fifo_pcie_tlp_r32_w64_4096_bram
         din => pcie_tlp_fifo_rx_wr_data_s,
         wr_en => pcie_tlp_fifo_rx_wr_en_s,
         rd_en => arbiter_i.arbiter_rd_en,
-        dout => pcie_tlp_fifo_rx_rd_data_s,
+        dout(31 downto 24) => pcie_tlp_fifo_rx_rd_data_s(7 downto 0),
+        dout(23 downto 16) => pcie_tlp_fifo_rx_rd_data_s(15 downto 8),
+        dout(15 downto 8) => pcie_tlp_fifo_rx_rd_data_s(23 downto 16),
+        dout(7 downto 0) => pcie_tlp_fifo_rx_rd_data_s(31 downto 24),
         full => pcie_tlp_fifo_rx_wr_full_s,
         empty => arbiter_o.arbiter_rd_empty,
         valid => arbiter_o.arbiter_rd_valid,
@@ -280,7 +283,10 @@ begin
 
     pcie_tlp_rx_consumer_o.tlp_axis_rx_tready <= not pcie_tlp_fifo_rx_wr_full_s;
     next_pcie_tlp_fifo_rx_wr_en_s <= '0';
-    next_pcie_tlp_fifo_rx_wr_data_s <= pcie_tlp_rx_buffer_s_2;
+    -- Need to word-swap the AXI interface so that the correct word is sent
+    -- out on the wire first. Refer to page 47 of pg054.
+    next_pcie_tlp_fifo_rx_wr_data_s <= pcie_tlp_rx_buffer_s_2(31 downto 0) &
+                                       pcie_tlp_rx_buffer_s_2(63 downto 32);
 
     case current_pcie_tlp_rx_req_state is
         when PCIE_TLP_AWAIT_RX =>
@@ -301,8 +307,11 @@ begin
                 -- The host will ignore the additional bytes when it processes the TLP.
                 pcie_tlp_rx_packet_len_v := 2 + 4;
             end if;
-            next_pcie_tlp_fifo_rx_wr_data_s <= std_logic_vector(to_unsigned(pcie_tlp_rx_packet_len_v, 16)) & "0000000000000010" &
-                                               "1010101010101010" & "1111010100001010";
+            -- The length is stored in network-order when going over the wire
+            next_pcie_tlp_fifo_rx_wr_data_s <= "0000000000000010" & -- tsh_msg_type == 2
+                                               std_logic_vector(to_unsigned(pcie_tlp_rx_packet_len_v, 16)) &
+                                               "0000000000000000" & -- tsh_rsvd_2 == 0
+                                               "0000000000000000"; -- tsh_seq_id
         when PCIE_TLP_RX_WRITE_TLP =>
             next_pcie_tlp_fifo_rx_wr_en_s <= pcie_tlp_rx_buffer_valid_s_2;
     end case;
