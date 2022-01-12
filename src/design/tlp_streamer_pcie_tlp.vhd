@@ -278,6 +278,7 @@ pcie_tlp_rx_fsm_data_output_process: process(current_pcie_tlp_rx_req_state, pcie
                                              pcie_tlp_rx_buffer_valid_s_2)
 
 variable pcie_tlp_rx_packet_len_v: integer range 0 to 65535;
+variable pcie_tlp_hdr_len_v: integer range 3 to 4;
 
 begin
 
@@ -294,12 +295,22 @@ begin
             next_pcie_tlp_fifo_rx_wr_en_s <= '1';
             -- Setup the tlp_streamer header length based on the TLP
             -- format and length contained in the first QW read.
+            if (pcie_tlp_rx_buffer_s_1(29) = '1') then
+                pcie_tlp_hdr_len_v := 4;
+            else
+                pcie_tlp_hdr_len_v := 3;
+            end if;
             if (pcie_tlp_rx_buffer_s_1(30) = '1') then
                 -- This TLP has data attached to it
                 if (pcie_tlp_rx_buffer_s_1(9 downto 0) = "0000000000") then
                     pcie_tlp_rx_packet_len_v := 2 + 4 + 1024;
                 else
-                    pcie_tlp_rx_packet_len_v := 2 + 4 + to_integer(unsigned(pcie_tlp_rx_buffer_s_1(9 downto 0)));
+                    pcie_tlp_rx_packet_len_v := 2 + pcie_tlp_hdr_len_v + to_integer(unsigned(pcie_tlp_rx_buffer_s_1(9 downto 0)));
+                    if (pcie_tlp_rx_packet_len_v mod 2 = 1) then
+                        -- If it's an odd packet length overall, add one more DW to align
+                        -- the TXd packet with a QW natural boundary.
+                        pcie_tlp_rx_packet_len_v := pcie_tlp_rx_packet_len_v + 1;
+                    end if;
                 end if;
             else
                 -- TLPs are always assumed to have a 4-byte header in the FPGA

@@ -132,11 +132,11 @@ comp_pcie_cfg_ila: ila_0
         probe0 => (others => '0'),
         probe1 => (others => '0'),
         probe2 => fifo_tx_rd_data_s(31 downto 0),
-        probe3 => (others => '0'),
+        probe3 => fifo_rx_wr_data_s(31 downto 0),
         probe4(0) => fifo_tx_rd_en_s,
-        probe5 => (others => '0'),
-        probe6 => (others => '0'),
-        probe7 => (others => '0'),
+        probe5(0) => fifo_rx_wr_en_s,
+        probe6(0) => ft601_txe_n_i,
+        probe7(0) => fifo_tx_rd_empty_s,
         probe8 => (others => '0'),
         probe9 => (others => '0'),
         probe10 => (others => '0'),
@@ -239,10 +239,14 @@ begin
 end process ft601_fsm_data_output_process;
 
 ft601_fsm_state_select_process: process(current_bus_state, ft601_txe_n_i, ft601_rxf_n_i,
-                                        fifo_rx_wr_full_s, fifo_tx_rd_empty_s)
+                                        fifo_rx_wr_full_s, fifo_tx_rd_empty_s, fifo_tx_rd_data_s)
+
+variable ft601_words_to_write_v: integer;
+
 begin
     -- Assume the state does not change by default
     next_bus_state <= current_bus_state;
+    ft601_words_to_write_v := 0;
 
     case current_bus_state is
         when BUS_IDLE =>
@@ -264,9 +268,11 @@ begin
         when RX_COMPLETE =>
             next_bus_state <= BUS_IDLE;
         when TX_READY =>
-                next_bus_state <= TX_WORD;
+            next_bus_state <= TX_WORD;
+            ft601_words_to_write_v := to_integer(unsigned(fifo_tx_rd_data_s(23 downto 16) & fifo_tx_rd_data_s(31 downto 24)));
         when TX_WORD =>
-            if (ft601_txe_n_i = '1' or fifo_tx_rd_empty_s = '1') then
+            ft601_words_to_write_v := ft601_words_to_write_v - 1;
+            if (ft601_txe_n_i = '1' or fifo_tx_rd_empty_s = '1' or ft601_words_to_write_v = 0) then
                 next_bus_state <= TX_COMPLETE;
             end if;
         when TX_COMPLETE =>
