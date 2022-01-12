@@ -198,7 +198,10 @@ And the FPGA would respond:
 }
 ```
 
-#### Configuration Block
+#### PCIe TLP Management
+This block manages regular TLP transfers to and from the PCIe IP. It needs to pull data and feed the FIFO in front of the FT601.
+
+#### FPGA Configuration Block
 This block manages configuration of the FPGA device. It manages the following features:
   - FPGA hot reset for PCIe reconfiguration
   - USB loopback enable/disable
@@ -206,12 +209,6 @@ This block manages configuration of the FPGA device. It manages the following fe
 
 Q: Should all other requests be stopped during a config change?
 Q: Should the in-flight requests be handled first without starting any new ones?
-
-#### PCIe Data Management
-This block manages regular TLP transfers to and from the PCIe IP. It needs to pull data and feed the FIFO in front of the FT601.
-
-#### PCIe Configuration Management
-This block manages configuration TLP transfers to and from the PCIe IP. It also needs to pull data and feed the FIFO in fron of the FT601 at a higher priority than regular data traffic.
 
 # Notes on manual testing
 ## How to trigger rescan after upgrading the bitstream
@@ -272,7 +269,8 @@ $ lspci -d 13a8:7021
 $ find /sys/devices -name '0000:0b:00.0' | grep -v iommu
 /sys/devices/pci0000:00/0000:00:03.2/0000:0b:00.0
 ```
-1) Trigger a MRd TLP (as root)
+
+2) Trigger a MRd TLP (as root)
   - Requires pcimem - https://github.com/billfarrow/pcimem
   - If the kernel has loaded a driver for the PCIe device, it may need to be unloaded first
   - The `resource0` file corresponds to `BAR0`, adjust as necessary for the appropriate `BAR` address.
