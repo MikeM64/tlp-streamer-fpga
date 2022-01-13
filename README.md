@@ -16,3 +16,9 @@ The current board target is the [Screamer M.2](https://shop.lambdaconcept.com/ho
      + [x] - TLP RX
      + [ ] - TLP TX (in progress)
    - [ ] - Host software
+
+# Thanks
+
+- [PCILeech](https://github.com/ufrisk/pcileech)
+- [NetTLP](https://github.com/nettlp)
+
