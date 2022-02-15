@@ -89,7 +89,7 @@ signal current_pcie_tlp_tx_req_state, next_pcie_tlp_tx_req_state: pcie_tlp_tx_re
 
 signal pcie_tlp_fifo_tx_wr_en_s, next_pcie_tlp_fifo_tx_wr_en_s: std_logic;
 signal pcie_tlp_fifo_tx_rd_en_s: std_logic;
-signal pcie_tlp_fifo_tx_rd_data_s: std_logic_vector(63 downto 0);
+signal pcie_tlp_fifo_tx_rd_data_s, ila_pcie_tlp_data: std_logic_vector(63 downto 0);
 signal pcie_tlp_fifo_tx_rd_empty_s: std_logic;
 signal pcie_tlp_fifo_tx_rd_valid_s: std_logic;
 
@@ -104,6 +104,8 @@ type pcie_tlp_rx_req_state is (PCIE_TLP_AWAIT_RX, PCIE_TLP_RX_WRITE_HEADER, PCIE
 
 signal current_pcie_tlp_rx_req_state, next_pcie_tlp_rx_req_state: pcie_tlp_rx_req_state;
 signal ila_current_tlp_state: std_logic_vector(2 downto 0);
+signal ila_current_tlp_tx_state: std_logic_vector(2 downto 0);
+signal ila_tx_tlast: std_logic;
 
 signal pcie_tlp_fifo_rx_wr_data_s, next_pcie_tlp_fifo_rx_wr_data_s: std_logic_vector(63 downto 0);
 -- Buffer to allow time for the header to be added to the RX FIFO ahead of the RXd TLP
@@ -113,6 +115,8 @@ signal pcie_tlp_fifo_rx_wr_en_s, next_pcie_tlp_fifo_rx_wr_en_s: std_logic;
 signal pcie_tlp_fifo_rx_rd_data_s: std_logic_vector(31 downto 0);
 signal pcie_tlp_fifo_rx_rd_en_s, next_pcie_tlp_fifo_rx_rd_en_s: std_logic;
 signal pcie_tlp_fifo_rx_wr_full_s: std_logic;
+
+signal ila_tx_next_qwords_to_read: std_logic_vector(63 downto 0);
 
 begin
 
@@ -124,7 +128,8 @@ comp_pcie_tlp_tx_fifo: fifo_pcie_tlp_r64_w32_4096_bram
         din => dispatch_i.dispatch_wr_data(31 downto 0),
         wr_en => pcie_tlp_fifo_tx_wr_en_s,
         rd_en => pcie_tlp_fifo_tx_rd_en_s,
-        dout => pcie_tlp_fifo_tx_rd_data_s,
+        dout(63 downto 32) => pcie_tlp_fifo_tx_rd_data_s(31 downto 0),
+        dout(31 downto 0) => pcie_tlp_fifo_tx_rd_data_s(63 downto 32),
         full => dispatch_o.dispatch_wr_full,
         empty => pcie_tlp_fifo_tx_rd_empty_s,
         valid => pcie_tlp_fifo_tx_rd_valid_s,
@@ -149,6 +154,32 @@ comp_pcie_tlp_rx_fifo: fifo_pcie_tlp_r32_w64_4096_bram
         wr_rst_busy => open,
         rd_rst_busy => open);
 
+--comp_pcie_tlp_rx_ila: pcie_tlp_ila
+--    port map(
+--        clk => pcie_clk_i,
+--        probe0(0) => pcie_tlp_rx_producer_i.tlp_axis_rx_tvalid,
+--        probe1(0) => pcie_tlp_rx_producer_i.tlp_axis_rx_tlast,
+--        probe2(0) => pcie_tlp_rx_buffer_valid_s_1,
+--        probe3(0) => pcie_tlp_rx_buffer_valid_s_2,
+--        probe4(0) => pcie_tlp_fifo_rx_wr_en_s,
+--        probe5 => ila_current_tlp_state,
+--        probe6 => pcie_tlp_rx_buffer_s_1,
+--        probe7 => pcie_tlp_rx_buffer_s_2,
+--        probe8 => pcie_tlp_fifo_rx_wr_data_s);
+
+comp_pcie_tlp_tx_ila: pcie_tlp_ila
+    port map(
+        clk => pcie_clk_i,
+        probe0(0) => '0',
+        probe1(0) => '0',
+        probe2(0) => pcie_tlp_fifo_tx_rd_valid_s,
+        probe3(0) => ila_tx_tlast,
+        probe4(0) => pcie_tlp_fifo_tx_rd_en_s,
+        probe5 => ila_current_tlp_tx_state,
+        probe6 => ila_pcie_tlp_data,
+        probe7 => ila_tx_next_qwords_to_read,
+        probe8 => pcie_tlp_fifo_tx_rd_data_s);
+
 pcie_tlp_rx_tx_async_process: process(dispatch_i, pcie_tlp_fifo_rx_rd_data_s)
 begin
 
@@ -167,9 +198,12 @@ begin
     if (pcie_rst_i = '1') then
         current_pcie_tlp_tx_req_state <= PCIE_TLP_TX_IDLE;
         pcie_tlp_tx_qwords_to_read <= 0;
+        ila_tx_next_qwords_to_read <= (others => '0');
     elsif (rising_edge(pcie_clk_i)) then
         current_pcie_tlp_tx_req_state <= next_pcie_tlp_tx_req_state;
         pcie_tlp_tx_qwords_to_read <= next_pcie_tlp_tx_qwords_to_read;
+        ila_tx_next_qwords_to_read <= std_logic_vector(to_unsigned(next_pcie_tlp_tx_qwords_to_read, 64));
+        ila_current_tlp_tx_state <= std_logic_vector(to_unsigned(pcie_tlp_tx_req_state'POS(next_pcie_tlp_tx_req_state), 3));
     end if;
 
 end process pcie_tlp_tx_fsm_clock_process;
@@ -177,6 +211,8 @@ end process pcie_tlp_tx_fsm_clock_process;
 pcie_tlp_tx_fsm_data_output_process: process(current_pcie_tlp_tx_req_state,
                                              pcie_tlp_tx_qwords_to_read, pcie_tlp_fifo_tx_rd_data_s,
                                              pcie_tlp_fifo_tx_rd_valid_s)
+variable pcie_tlp_tx_packet_len_v: integer range 0 to 65535;
+
 begin
 
     pcie_tlp_fifo_tx_rd_en_s <= '0';
@@ -186,6 +222,8 @@ begin
     pcie_tlp_tx_consumer_o.tlp_axis_tx_tkeep <= (others => '0');
     pcie_tlp_tx_consumer_o.tlp_axis_tx_tlast <= '0';
     pcie_tlp_tx_consumer_o.tlp_axis_tx_tvalid <= '0';
+    ila_pcie_tlp_data <= (others => '0');
+    ila_tx_tlast <= '0';
 
     case current_pcie_tlp_tx_req_state is
         when PCIE_TLP_TX_IDLE =>
@@ -197,14 +235,39 @@ begin
             -- The first double-word out of the FIFO is the tlp_streamer header.
             -- Use the length to know when to stop transmitting towards the
             -- PCIe core
-            next_pcie_tlp_tx_qwords_to_read <= to_integer(unsigned(pcie_tlp_fifo_tx_rd_data_s(63 downto 48))) / 2;
+            -- -2: -1 to not count the TLP streamer header,
+            --     -1 as this read of the header also counts towards the data left
+            next_pcie_tlp_tx_qwords_to_read <= (to_integer(unsigned(pcie_tlp_fifo_tx_rd_data_s(23 downto 16) &
+                                                                    pcie_tlp_fifo_tx_rd_data_s(31 downto 24))) / 2) - 2;
+            pcie_tlp_tx_packet_len_v := to_integer(unsigned(pcie_tlp_fifo_tx_rd_data_s(23 downto 16) &
+                                                             pcie_tlp_fifo_tx_rd_data_s(31 downto 24)));
             pcie_tlp_fifo_tx_rd_en_s <= '1';
         when PCIE_TLP_TX_PACKET =>
             pcie_tlp_fifo_tx_rd_en_s <= '1';
-            pcie_tlp_tx_consumer_o.tlp_axis_tx_tdata <= pcie_tlp_fifo_tx_rd_data_s;
+            -- Information from the host is transmitted in network-order, so swap
+            -- it here to align with the PCIe IP.
+            ila_pcie_tlp_data <= pcie_tlp_fifo_tx_rd_data_s(39 downto 32) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(47 downto 40) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(55 downto 48) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(63 downto 56) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(7 downto 0) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(15 downto 8) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(23 downto 16) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(31 downto 24);
+
+            pcie_tlp_tx_consumer_o.tlp_axis_tx_tdata <= pcie_tlp_fifo_tx_rd_data_s(39 downto 32) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(47 downto 40) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(55 downto 48) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(63 downto 56) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(7 downto 0) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(15 downto 8) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(23 downto 16) &
+                                                        pcie_tlp_fifo_tx_rd_data_s(31 downto 24);
+            -- TODO: Fix this for return data that is not an odd DW count
             pcie_tlp_tx_consumer_o.tlp_axis_tx_tkeep <= (others => '1');
             if (pcie_tlp_tx_qwords_to_read = 0) then
                 pcie_tlp_tx_consumer_o.tlp_axis_tx_tlast <= '1';
+                ila_tx_tlast <= '1';
             end if;
             pcie_tlp_tx_consumer_o.tlp_axis_tx_tvalid <= pcie_tlp_fifo_tx_rd_valid_s;
             next_pcie_tlp_tx_qwords_to_read <= pcie_tlp_tx_qwords_to_read - 1;
@@ -235,19 +298,6 @@ begin
     end case;
 
 end process pcie_tlp_tx_fsm_state_select_process;
-
-comp_pcie_tlp_ila: pcie_tlp_ila
-    port map(
-        clk => pcie_clk_i,
-        probe0(0) => pcie_tlp_rx_producer_i.tlp_axis_rx_tvalid,
-        probe1(0) => pcie_tlp_rx_producer_i.tlp_axis_rx_tlast,
-        probe2(0) => pcie_tlp_rx_buffer_valid_s_1,
-        probe3(0) => pcie_tlp_rx_buffer_valid_s_2,
-        probe4(0) => pcie_tlp_fifo_rx_wr_en_s,
-        probe5 => ila_current_tlp_state,
-        probe6 => pcie_tlp_rx_buffer_s_1,
-        probe7 => pcie_tlp_rx_buffer_s_2,
-        probe8 => pcie_tlp_fifo_rx_wr_data_s);
 
 pcie_tlp_rx_clock_process: process(pcie_clk_i, pcie_rst_i, next_pcie_tlp_rx_req_state,
                                    next_pcie_tlp_fifo_rx_wr_data_s, next_pcie_tlp_fifo_rx_wr_en_s,

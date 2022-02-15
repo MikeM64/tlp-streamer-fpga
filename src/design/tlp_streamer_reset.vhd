@@ -25,8 +25,8 @@ reset_process: process(sys_clk_i, reset_hold_count64_s, reset_s)
 begin
     sys_reset_o <= reset_s;
 
-    -- Self-generate a 500ns reset pulse
-    if (reset_hold_count64_s < to_unsigned(50, 64)) then
+    -- Self-generate a 1500ns reset pulse
+    if (reset_hold_count64_s < to_unsigned(150, 64)) then
         reset_s <= '1';
     else
         reset_s <= '0';

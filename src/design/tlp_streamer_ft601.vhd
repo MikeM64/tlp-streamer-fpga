@@ -47,25 +47,25 @@ component fifo_36_36_prim IS
     valid : OUT STD_LOGIC);
 END component fifo_36_36_prim;
 
-component ila_0 IS
-    PORT (
-        clk : IN STD_LOGIC;
-        probe0 : IN STD_LOGIC_VECTOR(12 DOWNTO 0);
-        probe1 : IN STD_LOGIC_VECTOR(12 DOWNTO 0);
-        probe2 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
-        probe3 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
-        probe4 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe6 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe8 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe9 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
-        probe10 : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
-        probe11 : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
-        probe12 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
-        probe13 : IN STD_LOGIC_VECTOR(0 DOWNTO 0)
-);
-end component ila_0;
+--component ila_0 IS
+--    PORT (
+--        clk : IN STD_LOGIC;
+--        probe0 : IN STD_LOGIC_VECTOR(12 DOWNTO 0);
+--        probe1 : IN STD_LOGIC_VECTOR(12 DOWNTO 0);
+--        probe2 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+--        probe3 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+--        probe4 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+--        probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+--        probe6 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+--        probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+--        probe8 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+--        probe9 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
+--        probe10 : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
+--        probe11 : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+--        probe12 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+--        probe13 : IN STD_LOGIC_VECTOR(0 DOWNTO 0)
+--);
+--end component ila_0;
 
 type ft601_bus_state is (BUS_IDLE,
                          RX_READY, RX_START, RX_WORD_1, RX_WORD_2, RX_COMPLETE,
@@ -126,24 +126,24 @@ ft601_tx_usb_fifo: fifo_36_36_prim
         empty => fifo_tx_rd_empty_s,
         valid => fifo_tx_rd_valid_s);
 
-comp_pcie_cfg_ila: ila_0
-    PORT map (
-        clk => ft601_clk_i,
-        probe0 => (others => '0'),
-        probe1 => (others => '0'),
-        probe2 => fifo_tx_rd_data_s(31 downto 0),
-        probe3 => fifo_rx_wr_data_s(31 downto 0),
-        probe4(0) => fifo_tx_rd_en_s,
-        probe5(0) => fifo_rx_wr_en_s,
-        probe6(0) => ft601_txe_n_i,
-        probe7(0) => fifo_tx_rd_empty_s,
-        probe8 => (others => '0'),
-        probe9 => (others => '0'),
-        probe10 => (others => '0'),
-        probe11 => (others => '0'),
-        probe12 => (others => '0'),
-        probe13 => (others => '0')
-);
+--comp_pcie_cfg_ila: ila_0
+--    PORT map (
+--        clk => ft601_clk_i,
+--        probe0 => (others => '0'),
+--        probe1 => (others => '0'),
+--        probe2 => fifo_tx_rd_data_s(31 downto 0),
+--        probe3 => fifo_rx_wr_data_s(31 downto 0),
+--        probe4(0) => fifo_tx_rd_en_s,
+--        probe5(0) => fifo_rx_wr_en_s,
+--        probe6(0) => ft601_txe_n_i,
+--        probe7(0) => fifo_tx_rd_empty_s,
+--        probe8 => (others => '0'),
+--        probe9 => (others => '0'),
+--        probe10 => (others => '0'),
+--        probe11 => (others => '0'),
+--        probe12 => (others => '0'),
+--        probe13(0) => ft601_rxf_n_i
+--);
 
 
 bus_read_write: process(ft601_wr_n_s_2, ft601_be_wr_o, ft601_data_wr_o,
